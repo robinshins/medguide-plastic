@@ -1,5 +1,12 @@
 import type { SiteConfig } from './site.types';
 
+// 발행 API 계정: 이 사이트는 OPENAI_API_KEY2 계정으로 돌린다(리포 Actions Secret
+// OPENAI_API_KEY에 그 값이 들어 있다). 코드에는 드러나지 않으므로 주의.
+//   무료 한도 250K 토큰/일, 글당 실측 ~14K → 하루 약 17.8건.
+//   이 계정을 쓰는 사이트는 eye와 plastic 둘뿐이고 각각 8회/일이라 16건 = 224K,
+//   한도의 약 90%다. 여유가 10%뿐이니 발행 횟수를 올리거나 세 번째 사이트를
+//   이 계정에 붙이면 초과한다. 나머지 3개 사이트는 1M/일 한도의 메인 키를 쓴다.
+
 // 성형외과 — "Contour". Editorial luxury: near-black + ivory + champagne bronze,
 // radius 0, no shadow, type does all the work.
 //
