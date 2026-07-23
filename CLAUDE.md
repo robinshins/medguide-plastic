@@ -28,7 +28,10 @@
   `articles_derma`, `articles-index`, `articles_index`, `comments`에는 절대 쓰지 않는다.
 - **글 문서 id = slug.** 인덱스는 진료항목별 샤드(`artindex_X/{specialtySlug}`) + `_latest`.
 - **발행 파이프라인은 `scripts/publish.ts` 하나.** (tsx 실행, `src/lib`와 타입 공유)
-  글 생성 모델은 `gpt-5.6-luna`(Responses API, structured outputs). 번역 없음.
+  글 생성 모델은 `gpt-5.4`(Responses API, structured outputs). 번역 없음.
+  실측 글당 ~14K 토큰(입력 5.3K / 출력 8.6K). OpenAI 무료 한도 1M/일 = 약 71건이라
+  5사이트 × 12회 = 60건/일이 한도 안에 들어온다. 초과분은 표준 요금이며 luna보다
+  비싸므로, 발행 횟수를 늘리려면 먼저 토큰 실측을 다시 해야 한다.
 - 큐 재시도: 실패 시 `pending` 복귀, `MAX_ATTEMPTS`(3) 초과 시 `failed`.
   1시간 이상 `in_progress`면 자동 회수.
 

@@ -13,19 +13,23 @@ name: Publish Articles
 
 on:
   schedule:
-    # KST 09:MM–20:MM, 12 runs/day
-    - cron: '31 0 * * *'
-    - cron: '31 1 * * *'
-    - cron: '31 2 * * *'
-    - cron: '31 3 * * *'
-    - cron: '31 4 * * *'
-    - cron: '31 5 * * *'
-    - cron: '31 6 * * *'
-    - cron: '31 7 * * *'
-    - cron: '31 8 * * *'
-    - cron: '31 9 * * *'
-    - cron: '31 10 * * *'
-    - cron: '31 11 * * *'
+    # 12 runs/day, hourly KST 09:MM–20:MM.
+    # Measured cost is ~14K tokens per article (5.3K in / 8.6K out incl. reasoning),
+    # so 12 × 5 sites = 60 articles/day ≈ 0.84M — inside OpenAI's 1M/day free
+    # allowance for gpt-5.4 (~71 articles). Going beyond ~70/day bills at standard
+    # rates, which is MORE than gpt-5.6-luna would cost — re-measure before adding runs.
+    - cron: '31 0 * * *'    # KST 09
+    - cron: '31 1 * * *'    # KST 10
+    - cron: '31 2 * * *'    # KST 11
+    - cron: '31 3 * * *'    # KST 12
+    - cron: '31 4 * * *'    # KST 13
+    - cron: '31 5 * * *'    # KST 14
+    - cron: '31 6 * * *'    # KST 15
+    - cron: '31 7 * * *'    # KST 16
+    - cron: '31 8 * * *'    # KST 17
+    - cron: '31 9 * * *'    # KST 18
+    - cron: '31 10 * * *'   # KST 19
+    - cron: '31 11 * * *'   # KST 20
   workflow_dispatch:
     inputs:
       count:
