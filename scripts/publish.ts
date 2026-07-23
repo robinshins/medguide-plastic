@@ -194,10 +194,43 @@ async function publishOne(browser: Browser, kw: KeywordEntry): Promise<Article |
   await markPublished(kw, now);
   console.log(`  [saved] /${article.slug} — ${article.title}`);
 
+  await revalidateSite();
+
   if (!OPTS.noIndexNow) {
     appendFileSync('.indexnow-pending.txt', `https://${SITE.domain}/${article.slug}\n`);
   }
   return article;
+}
+
+/**
+ * Purge the deployed site's data cache so the new article shows up in listings and
+ * the sitemap immediately.
+ *
+ * Without this, `getArticles` / `getLatestArticles` / `getAllArticleSlugs` stay stale
+ * for up to CACHE_REVALIDATE (6h) — the article URL itself resolves right away (its
+ * cache key is new), but the home page, the specialty listing, and crucially the
+ * sitemap keep serving the old set, which delays search-engine discovery.
+ *
+ * Best-effort: a failure here must never fail an otherwise-good publish, and it is
+ * expected to fail locally when no dev server is running on NEXT_PUBLIC_SITE_URL.
+ */
+async function revalidateSite(): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const secret = process.env.CRON_SECRET;
+  if (!baseUrl || !secret) {
+    console.log('  [revalidate] skipped (NEXT_PUBLIC_SITE_URL or CRON_SECRET unset)');
+    return;
+  }
+  try {
+    const res = await fetch(`${baseUrl}/api/revalidate?tag=articles`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: AbortSignal.timeout(15000),
+    });
+    console.log(`  [revalidate] ${res.status} ${baseUrl}`);
+  } catch (e) {
+    console.log(`  [revalidate] failed (non-fatal): ${(e as Error).message.slice(0, 80)}`);
+  }
 }
 
 // --- main -----------------------------------------------------------------

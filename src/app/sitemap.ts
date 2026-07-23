@@ -3,6 +3,9 @@ import { SITE } from '@/lib/site.config';
 import { getAllArticleSlugs } from '@/lib/articles';
 import { getAllBlogPosts } from '@/lib/blog';
 
+// 1h ISR floor. scripts/publish.ts also POSTs /api/revalidate?tag=articles right after
+// each publish, and revalidateTag('articles') purges this route's cache too — so a new
+// article normally lands in the sitemap within seconds, not an hour.
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
