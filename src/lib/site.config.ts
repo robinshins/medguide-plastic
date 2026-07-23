@@ -24,6 +24,10 @@ export const SITE: SiteConfig = {
   trustBadge: '리뷰 3개 플랫폼 교차검증',
   domain: 'contourreport.co.kr',
   contactEmail: 'nosun3946@gmail.com',
+  // 5개 사이트가 같은 키를 쓴다. IndexNow는 키 공유를 허용하며, 각 도메인 루트에
+  // <키>.txt만 있으면 된다(public 오버레이로 배치). 다만 제출은 도메인별로 따로
+  // 해야 한다 — 요청의 host는 하나이고 urlList가 전부 그 host여야 하기 때문이다.
+  indexNowKey: '9153a4ab80a3c5357ff7aeffea4749af',
 
   specialties: [
     { name: '', slug: '', label: '성형외과 전체', blurb: '지역 성형외과를 리뷰·전문의 기준으로 한눈에' },
