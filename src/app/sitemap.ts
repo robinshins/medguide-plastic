@@ -3,10 +3,22 @@ import { SITE } from '@/lib/site.config';
 import { getAllArticleSlugs } from '@/lib/articles';
 import { getAllBlogPosts } from '@/lib/blog';
 
-// 1h ISR floor. scripts/publish.ts also POSTs /api/revalidate?tag=articles right after
-// each publish, and revalidateTag('articles') purges this route's cache too — so a new
-// article normally lands in the sitemap within seconds, not an hour.
-export const revalidate = 3600;
+// 5-minute route cache. Do NOT set `dynamic = 'force-dynamic'` here — tried in
+// production and Next.js served a 404 for /sitemap.xml; metadata routes must stay
+// statically rendered.
+//
+// Also verified: neither revalidateTag('articles') nor revalidatePath('/sitemap.xml')
+// purges a metadata route's cache, so this interval is the real freshness bound —
+// a new article appears in the sitemap within 5 minutes of publishing, while the home
+// page and listings update instantly via the tag.
+//
+// Cost is negligible: getAllArticleSlugs() is wrapped in unstable_cache tagged
+// 'articles', so a regeneration only hits Firestore when a publish has purged that
+// tag; otherwise it re-renders from cached data.
+//
+// Search engines are not waiting on this anyway — scripts/publish.ts queues each new
+// URL for IndexNow, which notifies Bing/Naver directly at publish time.
+export const revalidate = 300;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
