@@ -1,1 +1,1 @@
-export const CORE_VERSION = 7;
+export const CORE_VERSION = 8;
