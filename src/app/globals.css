@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { -webkit-font-smoothing: antialiased; }
+body {
+  background: var(--surface-page);
+  color: var(--ink-base);
+  font-weight: 350;
+  letter-spacing: -0.01em;
+}
+h1, h2, h3, h4, h5, h6 { font-weight: 300; letter-spacing: -0.02em; }
+::selection { background: var(--accent-200); color: var(--ink-base); }
+
+/* ==========================================================================
+   .article-content — the generated-article typography system.
+   The generator emits exactly this tag vocabulary and nothing else:
+     h2 h3 p strong em ul ol li a blockquote table thead tbody tr th td hr
+     plus <ul class="checklist">
+   Every value comes from --* vars projected by src/design/tailwind-plugin.ts,
+   so re-theming a site means editing tokens.ts only.
+
+   PER-SITE: this block is intentionally NOT synced by sync.sh. Contour reads
+   like a printed magazine: radius 0, no boxes, no fills — gold hairlines,
+   uppercase micro-labels, and weight contrast do all the structural work.
+   ========================================================================== */
+.article-content { max-width: var(--article-measure); }
+
+/* h2 — editorial section head: gold running rubric above, bronze hairline below. */
+.article-content h2 {
+  font-size: 2rem;
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--ink-base);
+  margin-top: 4rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgb(190 154 93 / 0.35);
+}
+.article-content h2::before {
+  content: 'CONTOUR REPORT';
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-600);
+  margin-bottom: 0.75rem;
+}
+
+/* h3 — hospital head: ink bar, ivory type, one bronze rule at the spine. */
+.article-content h3 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--ink-onDark);
+  background: var(--surface-inverse);
+  border-left: 2px solid var(--accent-500);
+  border-radius: 0;
+  padding: 0.875rem 1.25rem;
+  margin-top: 2.75rem;
+  margin-bottom: 1.25rem;
+}
+.article-content h2 + h3 { margin-top: 1.75rem; }
+
+.article-content p {
+  font-size: var(--article-size);
+  line-height: var(--article-leading);
+  font-weight: 350;
+  color: var(--ink-muted);
+  margin-bottom: 1.375rem;
+}
+
+.article-content strong { color: var(--ink-base); font-weight: 600; }
+.article-content em { font-style: normal; color: var(--accent-700); }
+
+/* Leading <strong> in a paragraph acts as a label — bare uppercase gold, no box. */
+.article-content p > strong:first-child {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-700);
+  background: none;
+  margin-right: 0.5rem;
+}
+
+.article-content a {
+  color: var(--ink-base);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent-500);
+}
+.article-content a:hover { color: var(--accent-700); border-bottom-color: var(--accent-700); }
+
+.article-content ul, .article-content ol { margin: 0 0 1.5rem 1.375rem; }
+.article-content li { margin-bottom: 0.55rem; color: var(--ink-muted); line-height: 1.85; }
+.article-content ul li::marker { content: '\2014\2002'; color: var(--accent-500); }
+.article-content ol li::marker { color: var(--accent-600); font-weight: 500; }
+
+/* Review quotes: no fill, no bar — a centered light line between two gold rules. */
+.article-content blockquote {
+  margin: 2.5rem 0;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 300;
+  line-height: 1.6;
+  letter-spacing: -0.015em;
+  color: var(--ink-base);
+  font-style: normal;
+  border-top: 1px solid rgb(190 154 93 / 0.5);
+  border-bottom: 1px solid rgb(190 154 93 / 0.5);
+}
+.article-content blockquote::before {
+  content: '\201C';
+  display: block;
+  font-size: 2.25rem;
+  line-height: 0.5;
+  margin-bottom: 0.875rem;
+  color: var(--accent-400);
+}
+.article-content blockquote p {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  margin-bottom: 0;
+}
+
+/* Tables rule like a printed rate card: double gold rule top and bottom, nothing else
+   but hairline rows. No corner radius, no cell fills. */
+.article-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  font-size: 0.9375rem;
+  border-radius: 0;
+  border-top: 3px double var(--accent-500);
+  border-bottom: 3px double var(--accent-500);
+}
+.article-content th {
+  text-align: left;
+  padding: 0.875rem;
+  background: transparent;
+  color: var(--accent-600);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line-strong);
+}
+.article-content td {
+  padding: 0.875rem;
+  border-bottom: 1px solid var(--line-base);
+  color: var(--ink-muted);
+}
+.article-content tbody tr:last-child td { border-bottom: 0; }
+.article-content tbody tr:hover { background: var(--surface-sunk); }
+
+/* Checklist: no boxes, no checkmarks — a gold em-dash ledger, hairline-separated. */
+.article-content ul.checklist { list-style: none; margin-left: 0; }
+.article-content ul.checklist li {
+  position: relative;
+  padding: 0.875rem 0 0.875rem 2rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--line-base);
+}
+.article-content ul.checklist li:first-child { border-top: 1px solid var(--line-base); }
+.article-content ul.checklist li::marker { content: ''; }
+.article-content ul.checklist li::before {
+  content: '\2014';
+  position: absolute;
+  left: 0;
+  top: 0.875rem;
+  line-height: 1.85;
+  color: var(--accent-500);
+}
+.article-content ul.checklist li strong { color: var(--ink-base); }
+
+/* An asymmetric printer's rule: 1px gold, a third of the measure, flush left. */
+.article-content hr {
+  border: 0;
+  border-top: 1px solid var(--accent-500);
+  width: 33%;
+  margin: 3.5rem auto 3.5rem 0;
+}

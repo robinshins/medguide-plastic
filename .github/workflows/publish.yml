@@ -1,0 +1,85 @@
+name: Publish Articles
+
+# Scheduled publishing is INERT until the repository variable PUBLISH_ENABLED is set
+# to 'true' (Settings → Secrets and variables → Actions → Variables). Manual runs via
+# workflow_dispatch always work, so you can test before going live.
+#
+# NOTE: GitHub disables scheduled workflows after 60 days without repository activity
+# and emails the owner — a dormant site's cron stops silently.
+#
+# Cron minute offsets stagger the five sites so they never scrape Naver at the same
+# moment: dental2=3, ortho=10, eye=17, komed=24, plastic=31. sync.sh rewrites the
+# minute per site from this template's placeholder.
+
+on:
+  schedule:
+    # KST 09:MM–20:MM, 12 runs/day
+    - cron: '31 0 * * *'
+    - cron: '31 1 * * *'
+    - cron: '31 2 * * *'
+    - cron: '31 3 * * *'
+    - cron: '31 4 * * *'
+    - cron: '31 5 * * *'
+    - cron: '31 6 * * *'
+    - cron: '31 7 * * *'
+    - cron: '31 8 * * *'
+    - cron: '31 9 * * *'
+    - cron: '31 10 * * *'
+    - cron: '31 11 * * *'
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'articles to publish'
+        default: '1'
+      no_indexnow:
+        description: 'skip IndexNow submission'
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || vars.PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    # 25, not 15: the random jitter can consume 10 minutes and a slow scrape another 5.
+    # The old dental site's 15-minute timeout killed runners mid-publish and stranded
+    # 294 keywords at in_progress.
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Firebase service account
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > medicalkorea-2205a-firebase-adminsdk-fbsvc-70fd6e21f4.json
+
+      - name: Publish
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: >
+          npx tsx scripts/publish.ts
+          --count=${{ github.event.inputs.count || 1 }}
+          ${{ github.event_name == 'workflow_dispatch' && '--no-delay' || '' }}
+          ${{ github.event.inputs.no_indexnow == 'true' && '--no-indexnow' || '' }}
+
+      - name: Submit IndexNow
+        if: success() && github.event.inputs.no_indexnow != 'true'
+        run: npx tsx scripts/indexnow-submit.ts
+        continue-on-error: true
