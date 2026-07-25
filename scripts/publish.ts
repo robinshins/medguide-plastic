@@ -241,7 +241,12 @@ async function main() {
   if (reclaimed) console.log(`[queue] reclaimed ${reclaimed} stale in_progress → pending`);
 
   if (!OPTS.noDelay && !OPTS.keyword) {
-    const ms = Math.floor(Math.random() * 10 * 60 * 1000);
+    // 0-3 min, not 0-10. On GitHub Actions this sleep happens ON a billable runner,
+    // so a 10-minute jitter averaged 5 idle minutes per run — across 5 sites × 8
+    // runs/day that was ~200 wasted runner-minutes a day. GitHub's cron is already
+    // imprecise (frequently minutes late under load), so a smaller jitter still
+    // avoids hitting Naver on an exact clock tick.
+    const ms = Math.floor(Math.random() * 3 * 60 * 1000);
     console.log(`[queue] jitter ${(ms / 60000).toFixed(1)}min`);
     await delay(ms);
   }
