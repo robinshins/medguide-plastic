@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { SITE } from '../../src/lib/site.config';
 import type { HospitalInfo, KeywordEntry } from '../../src/lib/types';
 import { RetryableError, FatalError } from './errors';
+import { record, type AnyUsage } from './usage';
 
 // Lazy: see match.ts — module-scope construction races env loading.
 let _openai: OpenAI | null = null;
@@ -190,8 +191,13 @@ export async function generateArticle(
     error?: { message?: string };
     output_text?: string;
     output?: { type: string; content?: { type: string; refusal?: string }[] }[];
-    usage?: { output_tokens?: number };
+    usage?: AnyUsage;
   };
+
+  // Recorded before any throw: a failed generation still consumes the daily allowance,
+  // and an attempt that burns tokens without producing an article is exactly what has
+  // to be visible when judging whether the free tier covers us.
+  record('article', r.usage);
 
   if (r.status === 'incomplete') {
     throw new RetryableError(

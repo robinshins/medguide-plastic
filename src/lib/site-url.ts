@@ -28,13 +28,12 @@ export function getSiteHost(): string {
 }
 
 /**
- * Contact address for the footer and legal pages. Env-driven for the same reason.
+ * Contact address for the footer and legal pages.
  *
- * Returns '' when unset, and callers hide the contact line instead of rendering a
- * placeholder. Shipping a fake address like contact@example.com on a live medical
- * site would be worse than showing nothing: readers would mail into a void, and the
- * privacy/terms pages would be asserting something untrue.
+ * Hardcoded on purpose. It is the same across all five sites, it is displayed publicly
+ * on every page anyway, and routing it through an env var meant one unset variable
+ * silently removed the contact line from a live medical site.
  */
 export function getContactEmail(): string {
-  return process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || '';
+  return 'nosun3946@gmail.com';
 }

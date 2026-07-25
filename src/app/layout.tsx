@@ -77,15 +77,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </p>
             <p className="text-xs text-ink-soft mt-4">
               © {new Date().getFullYear()} {SITE.siteName}
-              {getContactEmail() ? (
-                <>
-                  <span className="mx-2">·</span>
-                  제안/협업{' '}
-                  <a href={`mailto:${getContactEmail()}`} className="hover:text-brand-600">
-                    {getContactEmail()}
-                  </a>
-                </>
-              ) : null}
+              <span className="mx-2">·</span>
+              제안/협업{' '}
+              <a href={`mailto:${getContactEmail()}`} className="hover:text-brand-600">
+                {getContactEmail()}
+              </a>
             </p>
           </div>
         </footer>

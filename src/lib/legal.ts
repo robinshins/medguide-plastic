@@ -14,10 +14,9 @@ export interface LegalDoc {
 
 const UPDATED = '2026년 7월 23일';
 
-// 이메일이 설정되지 않은 배포에서도 문장이 성립하도록. 가짜 주소를 쓰지 않는다.
 const contactLine = () => {
   const e = getContactEmail();
-  return e ? `<a href="mailto:${e}">${e}</a>` : '사이트 하단의 문의 안내를 참고해 주세요';
+  return `<a href="mailto:${e}">${e}</a>`;
 };
 
 export function getLegalDoc(key: LegalKey): LegalDoc {

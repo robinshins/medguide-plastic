@@ -1,12 +1,14 @@
 import OpenAI from 'openai';
 import type { KakaoPlace } from './scrape';
+import { record, type AnyUsage } from './usage';
 
 // Lazy: constructing the client at module scope throws before env.ts has loaded
 // .env.local, and import order is easy to get wrong.
 let _openai: OpenAI | null = null;
 const openai = () => (_openai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
-// Cheap classification work — Luna is the article model; matching stays on the mini tier.
+// Cheap classification work. Same model as the article now, but kept as its own constant
+// so matching can be moved off if the article model ever changes tier.
 const MATCH_MODEL = 'gpt-5.4-mini';
 
 export interface PendingMatch {
@@ -47,6 +49,8 @@ export async function batchMatchKakao(
         },
       ],
     });
+
+    record('match', (res as { usage?: AnyUsage }).usage);
 
     const arr = (res as { output_text?: string }).output_text?.match(/\[[\s\S]*\]/);
     if (!arr) return out;

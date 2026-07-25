@@ -11,6 +11,7 @@ import {
 } from './lib/scrape';
 import { batchMatchKakao, type PendingMatch } from './lib/match';
 import { generateArticle } from './lib/generate';
+import { summary as usageSummary } from './lib/usage';
 import { withRetry } from './lib/errors';
 import {
   pickNext, markInProgress, markPublished, giveUp, reclaimStaleInProgress, MAX_ATTEMPTS,
@@ -278,6 +279,7 @@ async function main() {
   }
 
   console.log(`\n[${SITE.key}] done: ${ok}/${OPTS.count} published`);
+  console.log(`[openai] token usage this run:\n${usageSummary()}`);
   process.exit(ok > 0 || OPTS.count === 0 ? 0 : 1);
 }
 
