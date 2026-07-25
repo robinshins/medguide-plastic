@@ -21,8 +21,9 @@ export const ARTICLE_MODEL = 'gpt-5.4-mini';
 
 // Reasoning tokens are billed inside max_output_tokens on the Responses API.
 // A ~3,000자 Korean HTML article is 8–11K output; effort:'low' reasoning adds 1–3K.
-// The old pipelines used 12000 and shipped truncated bodies.
-const MAX_OUTPUT_TOKENS = 24_000;
+// Set far above that so this value can never be the reason a publish fails — unused
+// headroom is not billed. The old pipelines used 12000 and shipped truncated bodies.
+const MAX_OUTPUT_TOKENS = 64_000;
 
 const ARTICLE_SCHEMA = {
   type: 'object',
