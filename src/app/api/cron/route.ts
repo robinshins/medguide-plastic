@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getBaseUrl, getSiteHost } from '@/lib/site-url';
 import { getDb } from '@/lib/firebase';
 import { INDEX_COLLECTION } from '@/lib/collections';
 import { SITE } from '@/lib/site.config';
@@ -8,7 +9,7 @@ import type { ArticlesIndex } from '@/lib/types';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const SITE_URL = getBaseUrl();
 
 const INDEXNOW_ENDPOINTS = [
   'https://api.indexnow.org/indexnow',
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
   }
 
   const body = {
-    host: SITE.domain,
+    host: getSiteHost(),
     key: SITE.indexNowKey,
     keyLocation: `${SITE_URL}/${SITE.indexNowKey}.txt`,
     urlList: urls,

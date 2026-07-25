@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import { getBaseUrl } from '@/lib/site-url';
 import type { Metadata } from 'next';
 import { SITE } from '@/lib/site.config';
 import { getAllBlogPosts } from '@/lib/blog';
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const baseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
   title: `블로그 — ${SITE.categoryKo} 상식과 가이드`,

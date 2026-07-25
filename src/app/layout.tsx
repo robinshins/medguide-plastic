@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
+import { getBaseUrl, getContactEmail } from '@/lib/site-url';
 import Link from 'next/link';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { SITE } from '@/lib/site.config';
 import { LogoMark, Wordmark } from '@/app/components/brand/Logo';
 import './globals.css';
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const baseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -76,8 +77,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </p>
             <p className="text-xs text-ink-soft mt-4">
               © {new Date().getFullYear()} {SITE.siteName}
-              <span className="mx-2">·</span>
-              제안/협업 <a href={`mailto:${SITE.contactEmail}`} className="hover:text-brand-600">{SITE.contactEmail}</a>
+              {getContactEmail() ? (
+                <>
+                  <span className="mx-2">·</span>
+                  제안/협업{' '}
+                  <a href={`mailto:${getContactEmail()}`} className="hover:text-brand-600">
+                    {getContactEmail()}
+                  </a>
+                </>
+              ) : null}
             </p>
           </div>
         </footer>

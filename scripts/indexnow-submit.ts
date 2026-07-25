@@ -1,4 +1,5 @@
 import './lib/env';
+import { getBaseUrl, getSiteHost } from '../src/lib/site-url';
 import { readFileSync, unlinkSync, existsSync } from 'node:fs';
 import { SITE } from '../src/lib/site.config';
 
@@ -31,9 +32,9 @@ async function main() {
     return;
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+  const siteUrl = getBaseUrl();
   const body = {
-    host: SITE.domain,
+    host: getSiteHost(),
     key: SITE.indexNowKey,
     keyLocation: `${siteUrl}/${SITE.indexNowKey}.txt`,
     urlList: urls,

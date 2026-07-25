@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import { getBaseUrl } from '@/lib/site-url';
 import type { Metadata } from 'next';
-import { SITE } from '@/lib/site.config';
 import { getLegalDoc, type LegalKey } from '@/lib/legal';
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const baseUrl = getBaseUrl();
 
 export function buildLegalMetadata(key: LegalKey): Metadata {
   const doc = getLegalDoc(key);

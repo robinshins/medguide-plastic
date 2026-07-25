@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { getBaseUrl } from '@/lib/site-url';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getArticle, getLatestArticles } from '@/lib/articles';
@@ -14,7 +15,7 @@ interface PageProps {
 export const dynamicParams = true;
 export const revalidate = 21600;
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const baseUrl = getBaseUrl();
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;

@@ -3,6 +3,7 @@
 // 타일, 아이보리/잉크 교차), 풀블리드 인용 밴드, 2단 에디토리얼 번호 리스트, 12컬럼 매거진
 // 그리드. 카드도 그림자도 라운드도 없다 — 헤어라인과 타이포그래피로만 구획한다.
 import Link from 'next/link';
+import { getBaseUrl } from '@/lib/site-url';
 import { SITE } from '@/lib/site.config';
 import { getLatestArticles } from '@/lib/articles';
 import { ProfileHairline } from '@/app/components/decor/ProfileHairline';
@@ -10,7 +11,7 @@ import { SpecialtyIcon } from '@/app/components/icons';
 
 export const revalidate = 21600;
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const baseUrl = getBaseUrl();
 
 // 히어로 우측 번호 인덱스 — 부위 대분류 4개
 const INDEX = [

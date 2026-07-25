@@ -7,13 +7,16 @@ import { RetryableError, FatalError } from './errors';
 let _openai: OpenAI | null = null;
 const openai = () => (_openai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
-// gpt-5.4 sits in OpenAI's free daily allowance (1M tokens/day across the 5.4/5.2/5.1/5/4.1/4o
-// tier) when the account opts into traffic sharing. At ~20–25K tokens per article that is
-// ~40–45 articles/day for free, which is why the cron runs 8×/day per site (5 sites = 40/day)
-// instead of 12. Exceeding the allowance bills at standard rates — higher than gpt-5.6-luna —
-// so raising the cron cadence without re-checking the math is a cost regression, not a speedup.
-// The Kakao matcher (gpt-5.4-mini) draws on the separate 10M/day mini allowance.
-export const ARTICLE_MODEL = 'gpt-5.4';
+// gpt-5.4-mini draws on OpenAI's 10M tokens/day free mini allowance — 10x the 1M given to
+// the gpt-5.4 tier. At ~14K tokens per article that is hundreds of articles/day, so the
+// cadence is no longer allowance-bound.
+//
+// Quality was measured, not assumed: with the full prompt below, mini produced 8.2–9.9K
+// character articles (gpt-5.4 produced 9.1K) with no out-of-vocabulary tags and 6 FAQ
+// pairs, passing assertArticleSane 3/3. It does occasionally drift to <dl>/<dt>/<dd> for
+// the FAQ when the prompt is weakened — that breaks both the CSS and the FAQPage JSON-LD
+// extraction — which is why the allowed-tag list in the prompt must stay explicit.
+export const ARTICLE_MODEL = 'gpt-5.4-mini';
 
 // Reasoning tokens are billed inside max_output_tokens on the Responses API.
 // A ~3,000자 Korean HTML article is 8–11K output; effort:'low' reasoning adds 1–3K.

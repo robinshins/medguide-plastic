@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { getBaseUrl } from '@/lib/site-url';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SITE } from '@/lib/site.config';
@@ -12,7 +13,7 @@ interface PageProps {
 export const dynamicParams = false;
 export const revalidate = 21600;
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const baseUrl = getBaseUrl();
 
 function findSpecialty(slug: string) {
   return SITE.specialties.find(s => (s.slug || 'general') === slug) ?? null;

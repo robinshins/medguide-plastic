@@ -23,9 +23,12 @@ export interface SiteConfig {
   siteTagline: string;
   siteDescription: string;
   trustBadge: string;
-  /** Bare host, no protocol. Used for canonical/sitemap/IndexNow. */
-  domain: string;
-  contactEmail: string;
+  // NOTE: no `domain` and no `contactEmail` here on purpose. These repositories are
+  // public (public repos get unlimited free Actions minutes), so nothing that ties a
+  // repo to a live site or to a person is committed. Both come from the environment
+  // via src/lib/site-url.ts:
+  //   NEXT_PUBLIC_SITE_URL      → canonical, sitemap, OG, IndexNow host
+  //   NEXT_PUBLIC_CONTACT_EMAIL → footer and legal pages
   gaId?: string;
   adsenseId?: string;
   /** IndexNow key; the matching `public/<key>.txt` must exist. */

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { getBaseUrl } from '@/lib/site-url';
 import { SITE } from '@/lib/site.config';
 import { getAllArticleSlugs } from '@/lib/articles';
 import { getAllBlogPosts } from '@/lib/blog';
@@ -21,7 +22,7 @@ import { getAllBlogPosts } from '@/lib/blog';
 export const revalidate = 300;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+  const baseUrl = getBaseUrl();
 
   const entries: MetadataRoute.Sitemap = [
     { url: baseUrl, changeFrequency: 'daily', priority: 1.0 },

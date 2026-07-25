@@ -2,6 +2,7 @@ import './lib/env';
 import { appendFileSync } from 'node:fs';
 import type { Browser } from 'puppeteer-core';
 import { SITE } from '../src/lib/site.config';
+import { getBaseUrl } from '../src/lib/site-url';
 import type { Article, HospitalInfo, KeywordEntry } from '../src/lib/types';
 import { launchBrowser, delay } from './lib/browser';
 import {
@@ -197,7 +198,7 @@ async function publishOne(browser: Browser, kw: KeywordEntry): Promise<Article |
   await revalidateSite();
 
   if (!OPTS.noIndexNow) {
-    appendFileSync('.indexnow-pending.txt', `https://${SITE.domain}/${article.slug}\n`);
+    appendFileSync('.indexnow-pending.txt', `${getBaseUrl()}/${article.slug}\n`);
   }
   return article;
 }

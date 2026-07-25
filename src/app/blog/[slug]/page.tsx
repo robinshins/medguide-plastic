@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { getBaseUrl } from '@/lib/site-url';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SITE } from '@/lib/site.config';
@@ -10,7 +11,7 @@ interface PageProps {
 
 export const dynamicParams = false;
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const baseUrl = getBaseUrl();
 
 export function generateStaticParams() {
   return getAllBlogPosts().map(p => ({ slug: p.slug }));

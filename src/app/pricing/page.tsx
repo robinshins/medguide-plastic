@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import { getBaseUrl } from '@/lib/site-url';
 import type { Metadata } from 'next';
 import { SITE } from '@/lib/site.config';
 import { PRICING } from '@/lib/pricing-data';
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${SITE.domain}`;
+const baseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
   title: `${SITE.categoryKo} 비용 가이드 — 시술별 가격과 보험 적용`,

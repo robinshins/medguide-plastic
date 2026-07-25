@@ -1,4 +1,5 @@
 import { SITE } from './site.config';
+import { getSiteHost, getContactEmail } from './site-url';
 
 // Korean-only legal/informational documents, interpolated from SITE so the same file
 // serves all five sites. Required for AdSense review (about/privacy/terms/contact).
@@ -12,6 +13,12 @@ export interface LegalDoc {
 }
 
 const UPDATED = '2026년 7월 23일';
+
+// 이메일이 설정되지 않은 배포에서도 문장이 성립하도록. 가짜 주소를 쓰지 않는다.
+const contactLine = () => {
+  const e = getContactEmail();
+  return e ? `<a href="mailto:${e}">${e}</a>` : '사이트 하단의 문의 안내를 참고해 주세요';
+};
 
 export function getLegalDoc(key: LegalKey): LegalDoc {
   switch (key) {
@@ -46,7 +53,7 @@ export function getLegalDoc(key: LegalKey): LegalDoc {
         description: `${SITE.siteName} 개인정보처리방침입니다.`,
         html: `
 <h2>1. 수집하는 정보</h2>
-<p>${SITE.siteName}(${SITE.domain})는 회원가입 없이 이용하는 사이트로, 다음 정보만을 처리합니다.</p>
+<p>${SITE.siteName}(${getSiteHost()})는 회원가입 없이 이용하는 사이트로, 다음 정보만을 처리합니다.</p>
 <ul>
 <li><strong>댓글</strong> — 이용자가 직접 입력한 닉네임과 댓글 내용. 이메일·연락처는 수집하지 않습니다.</li>
 <li><strong>접속 기록</strong> — 서비스 운영과 트래픽 분석을 위한 쿠키 및 유사 기술(Google Analytics). IP는 통계 목적으로만 처리됩니다.</li>
@@ -58,11 +65,11 @@ export function getLegalDoc(key: LegalKey): LegalDoc {
 <li>서비스 이용 통계 분석 및 개선</li>
 </ul>
 <h2>3. 보관과 파기</h2>
-<p>댓글은 이용자가 삭제를 요청하거나 사이트 운영이 종료될 때까지 보관됩니다. 삭제 요청은 ${SITE.contactEmail}로 보내주시면 확인 후 지체 없이 처리합니다.</p>
+<p>댓글은 이용자가 삭제를 요청하거나 사이트 운영이 종료될 때까지 보관됩니다. 삭제 요청은 ${contactLine()}로 보내주시면 확인 후 지체 없이 처리합니다.</p>
 <h2>4. 제3자 제공</h2>
 <p>법령에 근거한 요청을 제외하고 수집한 정보를 제3자에게 제공하지 않습니다. 데이터 보관은 Google Firebase(미국 소재)를 이용합니다.</p>
 <h2>5. 문의</h2>
-<p>개인정보 관련 문의: ${SITE.contactEmail}</p>
+<p>개인정보 관련 문의: ${contactLine()}</p>
 <p>최종 수정: ${UPDATED}</p>`,
       };
 
@@ -80,7 +87,7 @@ export function getLegalDoc(key: LegalKey): LegalDoc {
 <li>가격 정보는 시장 일반 시세의 참고치이며 개별 병원·개인 상태에 따라 달라집니다.</li>
 </ul>
 <h2>3. 콘텐츠의 이용</h2>
-<p>본 사이트의 글을 출처 표기 없이 복제·재배포할 수 없습니다. 인용 시 출처(${SITE.domain})를 명시해 주세요.</p>
+<p>본 사이트의 글을 출처 표기 없이 복제·재배포할 수 없습니다. 인용 시 출처(${getSiteHost()})를 명시해 주세요.</p>
 <h2>4. 책임의 한계</h2>
 <p>본 사이트는 제공된 정보의 정확성을 위해 노력하지만, 정보 이용으로 발생한 결과에 대해 법적 책임을 지지 않습니다. 외부 플랫폼(네이버·카카오·구글)의 데이터 변동, 의료기관의 폐업·이전 등은 실시간으로 반영되지 않을 수 있습니다.</p>
 <h2>5. 게시물 관리</h2>
@@ -95,7 +102,7 @@ export function getLegalDoc(key: LegalKey): LegalDoc {
         html: `
 <h2>문의 안내</h2>
 <p>사이트 이용, 데이터 정정, 제안/협업 관련 문의는 아래 이메일로 보내주세요.</p>
-<p><strong>제안/협업</strong> — <a href="mailto:${SITE.contactEmail}">${SITE.contactEmail}</a></p>
+<p><strong>제안/협업</strong> — ${contactLine()}</p>
 <h2>정정 요청</h2>
 <p>병원 정보(진료시간·전화번호·위치 등)가 실제와 다르거나, 폐업·이전한 병원이 남아 있다면 알려주세요. 확인 후 반영합니다.</p>
 <h2>의료기관 관계자분께</h2>
