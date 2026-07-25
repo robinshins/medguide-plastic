@@ -4,7 +4,7 @@
 
 ## 절대 규칙: 공유 파일은 여기서 고치지 않는다
 
-이 프로젝트의 파일 대부분은 `/Users/singyuseob/Dev/medguide-core/template/`의 사본입니다.
+이 프로젝트의 파일 대부분은 형제 디렉터리 `../medguide-core/template/`의 사본입니다.
 버그를 발견하면 **medguide-core/template에서 고치고 `./sync.sh`로 재배포**하세요. 여기서
 직접 고치면 다음 sync 때 덮어써지거나, 다른 4개 사이트에 같은 버그가 남습니다.
 
