@@ -1,9 +1,13 @@
 import { db } from '../../src/lib/firebase';
 import {
   ARTICLES_COLLECTION, INDEX_COLLECTION, KEYWORDS_COLLECTION,
+  articleDocId, indexShardId,
 } from '../../src/lib/collections';
 import { LATEST_SHARD, LATEST_SHARD_SIZE } from '../../src/lib/types';
-import type { Article, ArticleSummary, ArticlesIndex, KeywordEntry } from '../../src/lib/types';
+import { LANGS } from '../../src/lib/i18n';
+import type {
+  Article, ArticleSummary, ArticlesIndex, KeywordEntry, TranslatedArticle,
+} from '../../src/lib/types';
 
 export function toSummary(a: Article): ArticleSummary {
   return {
@@ -48,6 +52,38 @@ export async function saveArticle(article: Article): Promise<void> {
   const summary = toSummary(article);
   await upsertShard(article.specialtySlug, summary);
   await upsertShard(LATEST_SHARD, summary, LATEST_SHARD_SIZE);
+}
+
+/**
+ * 번역본 저장 + 해당 언어의 인덱스 샤드 갱신.
+ *
+ * 샤드가 언어별로 분리돼 있어(`implant__en`) 한국어 목록에 번역본이 섞이지 않고,
+ * 그 반대도 마찬가지다. 언어별 목록·사이트맵이 샤드 1회 읽기로 끝난다.
+ */
+export async function saveTranslation(t: TranslatedArticle): Promise<void> {
+  await db.collection(ARTICLES_COLLECTION).doc(t.id).set(t);
+  const summary: ArticleSummary = {
+    id: t.id,
+    slug: t.slug,
+    title: t.title,
+    metaDescription: t.metaDescription,
+    publishedAt: t.publishedAt,
+    specialty: t.specialty,
+    specialtySlug: t.specialtySlug,
+    region: t.region,
+  };
+  await upsertShard(indexShardId(t.specialtySlug, t.lang), summary);
+  await upsertShard(indexShardId(LATEST_SHARD, t.lang), summary, LATEST_SHARD_SIZE);
+}
+
+/** 이미 번역본이 있는 언어 목록. 백필이 중복 작업을 하지 않도록. */
+export async function existingTranslationLangs(slug: string): Promise<Set<string>> {
+  const ids = LANGS.map(l => articleDocId(slug, l));
+  const refs = ids.map(id => db.collection(ARTICLES_COLLECTION).doc(id));
+  const snaps = await db.getAll(...refs);
+  const out = new Set<string>();
+  snaps.forEach((s, i) => { if (s.exists) out.add(LANGS[i]); });
+  return out;
 }
 
 export async function markPublished(kw: KeywordEntry, publishedAt: string): Promise<void> {

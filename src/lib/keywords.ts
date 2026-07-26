@@ -1,8 +1,10 @@
 import type { KeywordEntry } from './types';
 import { SITE } from './site.config';
 import regionsData from './regions-data.json';
+import { LANGS } from './i18n';
 
 // --- Korean to romanized slug mapping ---
+
 const SLUG_MAP: Record<string, string> = {
   // Major cities
   '서울': 'seoul', '부산': 'busan', '대구': 'daegu', '인천': 'incheon',
@@ -349,13 +351,17 @@ function buildRegionList(): RegionEntry[] {
   });
 }
 
-// Route segments that must never be shadowed by an article slug. `[slug]` sits at the
+// Route segments that must never be shadowed by an article slug. `[seg]` sits at the
 // URL root, so a region slug colliding with one of these would make the real page
 // unreachable. seed.ts throws rather than writing such a keyword.
+//
+// 언어 코드가 여기 포함되는 것이 중요하다. `/en`은 영어 홈으로 분기되므로,
+// 'en'이라는 slug의 글이 생기면 그 글에 영원히 접근할 수 없다.
 export const RESERVED_SLUGS = new Set([
   's', 'api', 'about', 'privacy', 'terms', 'contact', 'blog', 'pricing',
   'sitemap.xml', 'robots.txt', 'og', 'img', 'pattern', '_next', 'favicon.ico',
   'icon.svg', 'apple-icon.png', 'logo.svg',
+  ...LANGS.map(l => l.toLowerCase()),
 ]);
 
 // --- Generate all keyword entries ---

@@ -11,12 +11,14 @@ import {
 } from './lib/scrape';
 import { batchMatchKakao, type PendingMatch } from './lib/match';
 import { generateArticle } from './lib/generate';
+import { translateAll } from './lib/translate';
 import { summary as usageSummary } from './lib/usage';
+import { LANGS, localePath, type Lang } from '../src/lib/i18n';
 import { withRetry } from './lib/errors';
 import {
   pickNext, markInProgress, markPublished, giveUp, reclaimStaleInProgress, MAX_ATTEMPTS,
 } from './lib/store';
-import { saveArticle } from './lib/store';
+import { saveArticle, saveTranslation } from './lib/store';
 import { looksRestricted } from '../src/lib/restricted';
 
 // --- CLI ------------------------------------------------------------------
@@ -33,6 +35,7 @@ const OPTS = {
   distinctRegion: flag('distinct-region'),
   keyword: value('keyword'),
   noIndexNow: flag('no-indexnow'),
+  noTranslate: flag('no-translate'),
   dryRun: flag('dry-run'),
 };
 
@@ -196,10 +199,28 @@ async function publishOne(browser: Browser, kw: KeywordEntry): Promise<Article |
   await markPublished(kw, now);
   console.log(`  [saved] /${article.slug} — ${article.title}`);
 
+  // 번역은 한국어 저장 이후에 돈다. 번역이 전부 실패해도 한국어 글은 이미 발행된
+  // 상태이고 키워드도 published다 — 번역 실패가 발행 자체를 되돌리면 안 된다.
+  // 빠진 언어는 translate-backfill.ts가 나중에 채운다.
+  const translated: string[] = [];
+  if (!OPTS.noTranslate) {
+    const t0 = Date.now();
+    const { ok, failed } = await translateAll(article);
+    for (const t of ok) {
+      await saveTranslation(t);
+      translated.push(t.lang);
+    }
+    const secs = ((Date.now() - t0) / 1000).toFixed(0);
+    console.log(`  [translate] ${ok.length}/${LANGS.length} in ${secs}s${ok.length ? ` — ${translated.join(', ')}` : ''}`);
+    for (const f of failed) console.log(`    [fail] ${f.lang}: ${f.error}`);
+  }
+
   await revalidateSite();
 
   if (!OPTS.noIndexNow) {
-    appendFileSync('.indexnow-pending.txt', `${getBaseUrl()}/${article.slug}\n`);
+    const urls = [`${getBaseUrl()}/${article.slug}`,
+      ...translated.map(l => `${getBaseUrl()}${localePath(l as Lang, article.slug)}`)];
+    appendFileSync('.indexnow-pending.txt', urls.join('\n') + '\n');
   }
   return article;
 }

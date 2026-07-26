@@ -11,7 +11,8 @@
     "seed": "tsx scripts/seed.ts",
     "publish:articles": "tsx scripts/publish.ts",
     "verify": "tsx scripts/verify.ts",
-    "assets": "tsx scripts/build-assets.mjs"
+    "assets": "tsx scripts/build-assets.mjs",
+    "translate:backfill": "tsx scripts/translate-backfill.ts"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.1",
