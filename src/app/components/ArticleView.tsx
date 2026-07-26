@@ -7,7 +7,8 @@ import { SITE } from '@/lib/site.config';
 import { looksRestricted } from '@/lib/restricted';
 import type { Article, HospitalInfo } from '@/lib/types';
 import Comments from '@/app/components/Comments';
-import { UI, LANG_META, localePath, segmentOf, type AnyLang, type Lang } from '@/lib/i18n';
+import { UI, LANG_META, localePath, type AnyLang, type Lang } from '@/lib/i18n';
+import { CARD, localizeHours, localizeSpecialists, romanize, hasHangul } from '@/lib/hospital-i18n';
 
 // 한국어 원문과 5개 번역본이 이 컴포넌트 하나를 공유한다. 라우트 파일
 // (`[seg]/page.tsx`, `[seg]/[slug]/page.tsx`)은 lang만 정해서 넘긴다.
@@ -162,7 +163,7 @@ function buildJsonLd(article: Article, hospitals: HospitalInfo[], lang: AnyLang)
   return schemas;
 }
 
-function RatingChip({ label, value, count, kind }: { label: string; value: number | null; count: number; kind: 'naver' | 'kakao' | 'google' }) {
+function RatingChip({ label, value, count, kind, fmt }: { label: string; value: number | null; count: number; kind: 'naver' | 'kakao' | 'google'; fmt: (n: number) => string }) {
   if (!value && !count) return null;
   const styles = {
     naver: 'bg-platform-naverBg text-platform-naverFg',
@@ -172,13 +173,16 @@ function RatingChip({ label, value, count, kind }: { label: string; value: numbe
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${styles}`}>
       {label} {value ? value.toFixed(1) : '-'}
-      <span className="opacity-70 font-normal">({count.toLocaleString()})</span>
+      <span className="opacity-70 font-normal">({fmt(count)})</span>
     </span>
   );
 }
 
-function HospitalCard({ hospital, rank }: { hospital: HospitalInfo; rank: number }) {
+function HospitalCard({ hospital, rank, lang }: { hospital: HospitalInfo; rank: number; lang: AnyLang }) {
   const mapUrl = hospital.id ? `https://m.place.naver.com/place/${hospital.id}` : hospital.homepage;
+  const c = CARD[lang];
+  const showRoman = lang !== 'ko';
+  const specialists = localizeSpecialists(hospital.specialistsInfo, lang);
   return (
     <div className="bg-surface-card rounded-lg shadow-card p-5">
       <div className="flex items-start gap-3">
@@ -186,22 +190,33 @@ function HospitalCard({ hospital, rank }: { hospital: HospitalInfo; rank: number
           {rank}
         </span>
         <div className="min-w-0 flex-1">
+          {/* 병원명·주소는 한글을 유지한다 — 지도 앱 입력과 택시 기사에게 보여주기
+              위해서다. 그 아래 로마자를 덧붙여 읽고 발음할 수 있게 한다. */}
           <h4 className="font-bold text-ink truncate">{hospital.name}</h4>
+          {showRoman && hasHangul(hospital.name) ? (
+            <p className="text-xs text-ink-soft mt-0.5">{romanize(hospital.name)}</p>
+          ) : null}
           {hospital.address ? <p className="text-sm text-ink-soft mt-0.5">{hospital.address}</p> : null}
+          {showRoman && hasHangul(hospital.address) ? (
+            <p className="text-xs text-ink-soft">{romanize(hospital.address)}</p>
+          ) : null}
           <div className="flex flex-wrap gap-1.5 mt-2.5">
-            <RatingChip label="네이버" value={hospital.naverStarRating} count={hospital.naverReviewCount} kind="naver" />
-            <RatingChip label="카카오" value={hospital.kakaoRating} count={hospital.kakaoReviewCount} kind="kakao" />
-            <RatingChip label="구글" value={hospital.googleRating} count={hospital.googleReviewCount} kind="google" />
+            <RatingChip label={c.naver} value={hospital.naverStarRating} count={hospital.naverReviewCount} kind="naver" fmt={c.reviews} />
+            <RatingChip label={c.kakao} value={hospital.kakaoRating} count={hospital.kakaoReviewCount} kind="kakao" fmt={c.reviews} />
+            <RatingChip label={c.google} value={hospital.googleRating} count={hospital.googleReviewCount} kind="google" fmt={c.reviews} />
           </div>
           <dl className="mt-3 space-y-1 text-sm text-ink-muted">
             {hospital.businessHours ? (
-              <div className="flex gap-2"><dt className="flex-none text-ink-soft">진료시간</dt><dd>{hospital.businessHours}</dd></div>
+              <div className="flex gap-2"><dt className="flex-none text-ink-soft">{c.hours}</dt><dd>{localizeHours(hospital.businessHours, lang)}</dd></div>
             ) : null}
             {hospital.phone ? (
-              <div className="flex gap-2"><dt className="flex-none text-ink-soft">전화</dt><dd><a href={`tel:${hospital.phone}`} className="text-brand-600">{hospital.phone}</a></dd></div>
+              <div className="flex gap-2"><dt className="flex-none text-ink-soft">{c.phone}</dt><dd><a href={`tel:${hospital.phone}`} className="text-brand-600">{hospital.phone}</a></dd></div>
             ) : null}
-            {hospital.specialistsInfo ? (
-              <div className="flex gap-2"><dt className="flex-none text-ink-soft">{SITE.credentialLabel}</dt><dd className="line-clamp-2">{hospital.specialistsInfo}</dd></div>
+            {specialists ? (
+              <div className="flex gap-2">
+                <dt className="flex-none text-ink-soft">{lang === 'ko' ? SITE.credentialLabel : c.specialists}</dt>
+                <dd className="line-clamp-2">{specialists}</dd>
+              </div>
             ) : null}
           </dl>
           {mapUrl ? (
@@ -211,7 +226,7 @@ function HospitalCard({ hospital, rank }: { hospital: HospitalInfo; rank: number
               rel="noopener noreferrer nofollow"
               className="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-brand-600 hover:text-brand-800"
             >
-              네이버 지도에서 보기 →
+              {c.viewOnMap}
             </a>
           ) : null}
         </div>
@@ -303,7 +318,7 @@ export async function ArticleView({ slug, lang }: { slug: string; lang: AnyLang 
             </h2>
             <div className="space-y-4">
               {hospitals.map((h, i) => (
-                <HospitalCard key={h.id || i} hospital={h} rank={i + 1} />
+                <HospitalCard key={h.id || i} hospital={h} rank={i + 1} lang={lang} />
               ))}
             </div>
           </section>
