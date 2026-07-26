@@ -15,6 +15,7 @@ import { translateAll } from './lib/translate';
 import { summary as usageSummary } from './lib/usage';
 import { LANGS, localePath, type Lang } from '../src/lib/i18n';
 import { withRetry } from './lib/errors';
+import { revalidateSite } from './lib/revalidate';
 import {
   pickNext, markInProgress, markPublished, giveUp, reclaimStaleInProgress, MAX_ATTEMPTS,
 } from './lib/store';
@@ -237,25 +238,6 @@ async function publishOne(browser: Browser, kw: KeywordEntry): Promise<Article |
  * Best-effort: a failure here must never fail an otherwise-good publish, and it is
  * expected to fail locally when no dev server is running on NEXT_PUBLIC_SITE_URL.
  */
-async function revalidateSite(): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  const secret = process.env.CRON_SECRET;
-  if (!baseUrl || !secret) {
-    console.log('  [revalidate] skipped (NEXT_PUBLIC_SITE_URL or CRON_SECRET unset)');
-    return;
-  }
-  try {
-    const res = await fetch(`${baseUrl}/api/revalidate?tag=articles`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${secret}` },
-      signal: AbortSignal.timeout(15000),
-    });
-    console.log(`  [revalidate] ${res.status} ${baseUrl}`);
-  } catch (e) {
-    console.log(`  [revalidate] failed (non-fatal): ${(e as Error).message.slice(0, 80)}`);
-  }
-}
-
 // --- main -----------------------------------------------------------------
 async function main() {
   console.log(`[${SITE.key}] publish — count=${OPTS.count}${OPTS.dryRun ? ' (dry-run)' : ''}`);

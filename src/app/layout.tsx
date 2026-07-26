@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { SITE } from '@/lib/site.config';
 import { LogoMark, Wordmark } from '@/app/components/brand/Logo';
+import HeaderNav, { HomeHref } from '@/app/components/HeaderNav';
 import './globals.css';
 
 const baseUrl = getBaseUrl();
@@ -24,30 +25,18 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const NAV = SITE.specialties.slice(0, 6);
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" dir="ltr">
       <body className="font-sans">
         <header className="sticky top-0 z-40 h-14 bg-surface-page/85 backdrop-blur border-b border-line">
           <div className="max-w-6xl mx-auto px-4 h-full flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 shrink-0">
+            <HomeHref className="flex items-center gap-2 shrink-0">
               <LogoMark className="w-8 h-8" />
               <Wordmark className="hidden sm:block h-4 w-auto text-ink" />
               <span className="sr-only">{SITE.siteName}</span>
-            </Link>
-            <nav className="flex items-center gap-1 overflow-x-auto text-sm">
-              {NAV.map(s => (
-                <Link
-                  key={s.slug || 'general'}
-                  href={`/s/${s.slug || 'general'}`}
-                  className="px-3 py-1.5 rounded-full text-ink-muted hover:text-brand-700 hover:bg-brand-50 whitespace-nowrap transition-colors"
-                >
-                  {s.label || s.name || SITE.categoryKo}
-                </Link>
-              ))}
-            </nav>
+            </HomeHref>
+            <HeaderNav />
           </div>
         </header>
 

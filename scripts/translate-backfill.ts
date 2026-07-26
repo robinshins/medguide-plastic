@@ -8,6 +8,7 @@ import { translateOne } from './lib/translate';
 import { saveTranslation, existingTranslationLangs } from './lib/store';
 import { summary as usageSummary } from './lib/usage';
 import { withRetry } from './lib/errors';
+import { revalidateSite } from './lib/revalidate';
 
 /**
  * 이미 발행된 한국어 글에 번역본을 채운다. 멱등 — 이미 있는 언어는 건너뛴다.
@@ -113,6 +114,8 @@ async function main() {
   });
 
   console.log(`\n[${SITE.key}] 완료: 성공 ${done} / 실패 ${failed} / ${((Date.now() - t0) / 60000).toFixed(1)}분`);
+  // 이게 없으면 새 번역이 최대 6시간 동안 사이트에 나타나지 않는다.
+  if (done) await revalidateSite();
   console.log(`[deepseek] token usage:\n${usageSummary()}`);
 }
 
