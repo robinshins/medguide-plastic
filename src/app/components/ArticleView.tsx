@@ -65,6 +65,28 @@ function stripEmojis(html: string): string {
   );
 }
 
+
+/**
+ * AggregateRating에 쓸 평점과 리뷰 수를 한 플랫폼에서 함께 고른다.
+ *
+ * 두 가지를 고친다.
+ * 1. reviewCount가 0이면 aggregateRating을 아예 내보내지 않는다. Google Search
+ *    Console이 "속성 'reviewCount'의 값은 양수여야 합니다"를 심각 오류로 보고했고,
+ *    심각 오류가 있으면 그 페이지의 리뷰 스니펫이 검색 결과에서 빠진다.
+ * 2. 평점과 리뷰 수의 출처를 일치시킨다. 이전에는 카카오 평점에 네이버·구글 리뷰
+ *    수까지 더한 값을 붙여서, 500건에 근거한 4.5점을 3,000건에 근거한 것처럼
+ *    신고했다. 리뷰 수가 가장 많은 플랫폼 하나를 골라 그 쌍만 쓴다.
+ */
+function pickRating(h: HospitalInfo): { rating: number; count: number } | null {
+  const sources = [
+    { rating: h.kakaoRating, count: h.kakaoReviewCount || 0 },
+    { rating: h.googleRating, count: h.googleReviewCount || 0 },
+    { rating: h.naverStarRating, count: h.naverReviewCount || 0 },
+  ].filter((s): s is { rating: number; count: number } => !!s.rating && s.count > 0);
+  if (!sources.length) return null;
+  return sources.sort((a, b) => b.count - a.count)[0];
+}
+
 function buildJsonLd(article: Article, hospitals: HospitalInfo[], lang: AnyLang) {
   const pageUrl = `${baseUrl}${localePath(lang, article.slug)}`;
   const clinicType = SITE.clinicSchemaType ?? 'MedicalClinic';
@@ -128,16 +150,15 @@ function buildJsonLd(article: Article, hospitals: HospitalInfo[], lang: AnyLang)
           addressRegion: addressParts[0] || '',
           addressCountry: 'KR',
         },
-        ...(h.kakaoRating || h.googleRating
-          ? {
-              aggregateRating: {
-                '@type': 'AggregateRating',
-                ratingValue: h.kakaoRating || h.googleRating,
-                reviewCount: (h.kakaoReviewCount || 0) + (h.naverReviewCount || 0) + (h.googleReviewCount || 0),
-                bestRating: 5,
-              },
-            }
-          : {}),
+        ...(() => {
+          const r = pickRating(h);
+          return r ? { aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: r.rating,
+            reviewCount: r.count,
+            bestRating: 5,
+          } } : {};
+        })(),
       };
     }),
   ];
