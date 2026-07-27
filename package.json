@@ -12,7 +12,8 @@
     "publish:articles": "tsx scripts/publish.ts",
     "verify": "tsx scripts/verify.ts",
     "assets": "tsx scripts/build-assets.mjs",
-    "translate:backfill": "tsx scripts/translate-backfill.ts"
+    "translate:backfill": "tsx scripts/translate-backfill.ts",
+    "fix:order": "tsx scripts/fix-hospital-order.ts"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.1",

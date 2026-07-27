@@ -6,7 +6,7 @@ import {
 import { LATEST_SHARD, LATEST_SHARD_SIZE } from '../../src/lib/types';
 import { LANGS } from '../../src/lib/i18n';
 import type {
-  Article, ArticleSummary, ArticlesIndex, KeywordEntry, TranslatedArticle,
+  Article, ArticleSummary, ArticlesIndex, HospitalInfo, KeywordEntry, TranslatedArticle,
 } from '../../src/lib/types';
 
 export function toSummary(a: Article): ArticleSummary {
@@ -46,7 +46,40 @@ async function upsertShard(shard: string, summary: ArticleSummary, cap?: number)
   });
 }
 
+/**
+ * 병원 카드 순서를 기사 본문의 순위에 맞춘다.
+ *
+ * hospitals 배열은 네이버 검색 결과 순서일 뿐인데 카드에는 1~5 번호가 붙고 제목도
+ * "추천"이라 독자는 순위로 읽는다. 글이 1위로 꼽은 병원이 카드에서 4번으로 나오는
+ * 일이 실제로 있었다.
+ *
+ * 본문 <h3>에 병원명이 그대로 들어가므로 그 등장 순서로 재정렬한다. 매칭하지 못한
+ * 병원은 뒤에 원래 순서로 남겨, 못 맞춘 글이 지금보다 나빠지지 않게 한다.
+ *
+ * 번역본은 hospitals를 복사하지 않고 한국어 문서에서 읽으므로(articles.ts의
+ * getTranslatedArticle) 여기서 한 번 정렬하면 6개 언어가 모두 같은 순서를 갖는다.
+ */
+export function orderHospitalsByBody(content: string, hospitals: HospitalInfo[]): HospitalInfo[] {
+  if (!content || hospitals.length < 2) return hospitals;
+  const heads = [...content.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
+  const used = new Set<number>();
+  const ordered: HospitalInfo[] = [];
+  for (const head of heads) {
+    // 같은 브랜드 분점이 섞일 수 있으므로 가장 긴 일치를 고른다.
+    let best = -1, bestLen = 0;
+    hospitals.forEach((h, i) => {
+      if (used.has(i) || !h.name) return;
+      if (head.includes(h.name) && h.name.length > bestLen) { best = i; bestLen = h.name.length; }
+    });
+    if (best >= 0) { used.add(best); ordered.push(hospitals[best]); }
+  }
+  hospitals.forEach((h, i) => { if (!used.has(i)) ordered.push(h); });
+  return ordered;
+}
+
 export async function saveArticle(article: Article): Promise<void> {
+  // 저장 직전에 정렬한다 — 호출부가 잊을 수 없도록 여기에 둔다.
+  article = { ...article, hospitals: orderHospitalsByBody(article.content, article.hospitals || []) };
   // Document id IS the slug — no language, no category prefix.
   await db.collection(ARTICLES_COLLECTION).doc(article.slug).set(article);
   const summary = toSummary(article);
