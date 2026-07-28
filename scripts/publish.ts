@@ -7,7 +7,7 @@ import type { Article, HospitalInfo, KeywordEntry } from '../src/lib/types';
 import { launchBrowser, delay } from './lib/browser';
 import {
   searchNaver, getPlaceInfo, searchKakao, searchGoogle,
-  prefilterKakaoCandidates, matchesSpecialty,
+  prefilterKakaoCandidates, matchesSpecialty, cleanDeep,
 } from './lib/scrape';
 import { batchMatchKakao, type PendingMatch } from './lib/match';
 import { generateArticle } from './lib/generate';
@@ -151,7 +151,10 @@ async function collectHospitals(browser: Browser, kw: KeywordEntry): Promise<Hos
     console.log(`  [match] resolved ${matched.size}/${pending.length}`);
   }
 
-  return hospitals;
+  // 스크랩 텍스트를 여기서 한 번 씻는다. 네이버 리뷰에 잘린 이모지(짝 없는
+  // 서로게이트)가 섞여 있으면 프롬프트를 JSON으로 직렬화할 때 OpenAI가 본문
+  // 파싱을 거부하고(400 Invalid body), 재시도 3회가 모두 같은 이유로 죽는다.
+  return cleanDeep(hospitals);
 }
 
 // --- one keyword ----------------------------------------------------------

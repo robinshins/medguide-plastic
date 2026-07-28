@@ -3,6 +3,33 @@ import { withPage, delay } from './browser';
 import { SITE } from '../../src/lib/site.config';
 import type { ReviewItem } from '../../src/lib/types';
 
+/**
+ * 짝 없는 서로게이트를 제거한다.
+ *
+ * 네이버 리뷰는 본문이 잘린 채로 오는 경우가 있어 이모지가 중간에서 끊긴다
+ * (예: U+D83D 뒤에 low surrogate가 없음). 이 문자가 프롬프트에 실리면
+ * JSON.stringify는 문법상 유효한 \ud83d 이스케이프를 만들지만 UTF-16으로는
+ * 깨진 값이라 OpenAI가 요청 본문 파싱을 거부한다
+ * ("400 Invalid body: failed to parse JSON value").
+ *
+ * 결정론적 실패라 재시도 3회가 모두 같은 이유로 죽고 키워드가 failed로 확정됐다
+ * (2026-07-27, medguide-plastic "대구 쌍꺼풀 성형외과").
+ *
+ * 스크래퍼 경계에서 한 번 씻어 프롬프트와 Firestore 양쪽을 동시에 보호한다.
+ */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+export function cleanDeep<T>(value: T): T {
+  if (typeof value === 'string') return value.replace(LONE_SURROGATE, '') as unknown as T;
+  if (Array.isArray(value)) return value.map(cleanDeep) as unknown as T;
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) out[k] = cleanDeep(v);
+    return out as T;
+  }
+  return value;
+}
+
 export interface NaverPlace {
   id: string;
   name: string;
@@ -240,7 +267,7 @@ export async function getPlaceInfo(
       return results;
     });
 
-    return { detail: detail as PlaceDetail, reviews: reviews as ReviewItem[] };
+    return cleanDeep({ detail: detail as PlaceDetail, reviews: reviews as ReviewItem[] });
   });
 }
 
