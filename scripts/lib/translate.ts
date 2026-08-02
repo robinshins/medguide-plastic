@@ -4,6 +4,7 @@ import { LANGS, LANG_META, GEO_HINTS, type Lang } from '../../src/lib/i18n';
 import type { Article, TranslatedArticle } from '../../src/lib/types';
 import { RetryableError, FatalError } from './errors';
 import { record, type AnyUsage } from './usage';
+import { stripTrailingMarkers } from './generate';
 
 /**
  * DeepSeek V4-Flash로 번역한다. gpt-5.4-mini 대비 출력 단가가 1/16($0.28 vs $4.50)이고,
@@ -92,7 +93,7 @@ function parseMarkers(text: string) {
     /===TITLE===\s*([\s\S]*?)\s*===META===\s*([\s\S]*?)\s*===CONTENT===\s*([\s\S]*?)\s*$/
   );
   if (!m) throw new RetryableError('markers not found in translation output');
-  return { title: m[1].trim(), metaDescription: m[2].trim(), content: m[3].trim() };
+  return { title: m[1].trim(), metaDescription: m[2].trim(), content: stripTrailingMarkers(m[3]) };
 }
 
 const countTag = (html: string, t: string) =>
