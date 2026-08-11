@@ -13,23 +13,16 @@ name: Publish Articles
 
 on:
   schedule:
-    # 8 runs/day, KST 09:MM–19:MM every ~90 min.
+    # 2 runs/day (한국어 기준). 2026-08-04에 8회에서 축소.
     #
-    # Budget: measured ~14K tokens per article (5.3K in / 8.6K out incl. reasoning).
-    # OpenAI's free gpt-5.4 allowance is 1M tokens/day ≈ 71 articles.
-    #   8 × 5 sites = 40 articles/day ≈ 0.56M — roughly 56% of the allowance.
-    # The headroom is deliberate: article length varies with how many reviews a
-    # region's clinics have, retries re-spend tokens, and the allowance is shared
-    # with anything else on this OpenAI account. Overage bills at standard rates,
-    # which cost MORE than gpt-5.6-luna would — re-measure before adding runs.
-    - cron: '31 0 * * *'    # KST 09
+    # 축소 이유는 비용이 아니라 SEO다. 신규 도메인이 하루 8편씩 쏟아내면 색인
+    # 속도가 발행 속도를 못 따라가고, 대량 자동 생성으로 읽힐 위험이 있다.
+    # 번역은 그대로 5개 언어를 붙이므로 한국어 1편당 6장이 나간다 —
+    # 하루 12장. 발행 편수를 줄여도 언어 커버리지는 손대지 않는다.
+    #
+    # 아침·오후로 나눠 하루 안에서도 몰리지 않게 한다.
     - cron: '31 1 * * *'    # KST 10
-    - cron: '31 3 * * *'    # KST 12
-    - cron: '31 4 * * *'    # KST 13
-    - cron: '31 6 * * *'    # KST 15
     - cron: '31 7 * * *'    # KST 16
-    - cron: '31 9 * * *'    # KST 18
-    - cron: '31 10 * * *'   # KST 19
   workflow_dispatch:
     inputs:
       count:
