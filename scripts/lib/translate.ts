@@ -145,7 +145,10 @@ export async function translateOne(article: Article, lang: Lang): Promise<Transl
   const res = await client().chat.completions.create({
     model: TRANSLATION_MODEL,
     messages: [{ role: 'user', content: buildPrompt(article, lang) }],
-    max_tokens: 16000,
+    // 번역문은 원문보다 길어진다 — 한국어 11,000자가 영어 22,000자가 되고, 실측
+    // 출력이 이미 10.7K 토큰이었다. 16000은 여유가 얼마 없어 긴 글에서 잘린다.
+    // DeepSeek 허용 최대는 393216이고, 미사용분은 과금되지 않는다.
+    max_tokens: 64000,
   });
 
   record(`tr:${lang}`, res.usage as AnyUsage);
