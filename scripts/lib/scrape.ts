@@ -133,12 +133,21 @@ export async function getPlaceInfo(
       let name = '', address = '', phone = '', facilities = '', directions = '', homepage = '';
       let naverReviewCount = 0, naverBlogReviewCount = 0, category = '';
       let naverStarRating: number | null = null;
+      // 홈 상단의 "치과리뷰 3,603"은 방문자+블로그 합계. 방문자 수는 아래 리뷰 탭에서 따로 읽고,
+      // 합계에서 빼서 블로그 수를 구한다.
+      let naverTotalReviews = 0;
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         if (i < 5 && !name && line.length > 1 && line.length < 50 &&
             !line.includes('이전') && !line.includes('플레이스') && !line.includes('마이')) name = line;
         if (i < 8 && !category && hints.some(h => line.includes(h))) category = line;
+        if (i < 12 && !naverTotalReviews) {
+          const tm = line.match(/리뷰\s*([\d,]+)$/);
+          if (tm) naverTotalReviews = parseInt(tm[1].replace(/,/g, ''));
+        }
+        // 2026-07 말부터 홈에 "방문자 리뷰 N"이 사라져 아래 두 패턴은 거의 안 잡힌다.
+        // 예전 화면이 섞여 나올 때를 위해 남겨 두고, 리뷰 탭 값이 있으면 그것으로 덮어쓴다.
         const starMatch = line.match(/별점\s*(\d+\.?\d*)/);
         if (starMatch) naverStarRating = parseFloat(starMatch[1]);
         const vm = line.match(/방문자 리뷰\s*([\d,]+)/);
@@ -226,7 +235,7 @@ export async function getPlaceInfo(
         address: address.replace(/지도내비게이션거리뷰/g, '').replace(/지도$/, '').trim(),
         phone: phone.replace(/복사$/g, '').trim(),
         businessHours, specialistsInfo: parts.join(' | '), facilities, homepage, directions,
-        naverReviewCount, naverBlogReviewCount, naverStarRating,
+        naverReviewCount, naverBlogReviewCount, naverStarRating, naverTotalReviews,
         blogUrl, instagramUrl, youtubeUrl, facebookUrl,
         imageUrls: imageUrls.filter(Boolean).slice(0, 3),
       };
@@ -235,9 +244,20 @@ export async function getPlaceInfo(
     await page.goto(`https://m.place.naver.com/place/${placeId}/review/visitor`, {
       waitUntil: 'networkidle2', timeout: 25000,
     });
+    // 방문자 리뷰 수("리뷰2,199" 줄)는 목록과 함께 늦게 그려진다. 잠시 기다리되 못 찾아도 진행한다.
+    await page.waitForFunction(() => /^리뷰\s*[\d,]+$/m.test(document.body.innerText), { timeout: 5000 }).catch(() => {});
     await delay(1500);
-    const reviews = await page.evaluate(() => {
+    const { results: reviews, visitorCount } = await page.evaluate(() => {
       const lines = document.body.innerText.split('\n').map(l => l.trim()).filter(Boolean);
+      // 방문자 리뷰 수. "방문자 리뷰" 탭 아래에 "리뷰2,199"처럼 한 줄로 온다. 리뷰 하나하나의
+      // "리뷰 71사진 84" 줄은 숫자로 끝나지 않아 걸리지 않고, 상단의 "치과리뷰 3,603"(합계)은
+      // 줄 앞이 "리뷰"가 아니라 걸리지 않는다.
+      let visitorCount = 0;
+      const tabIdx = lines.findIndex(l => l === '방문자 리뷰');
+      for (let i = Math.max(tabIdx, 0); i < lines.length; i++) {
+        const m = lines[i].match(/^리뷰\s*([\d,]+)$/);
+        if (m) { visitorCount = parseInt(m[1].replace(/,/g, '')); break; }
+      }
       const results: { author: string; content: string; date: string; visitCount: string; source: 'naver' }[] = [];
       for (let i = 0; i < lines.length && results.length < 8; i++) {
         if (lines[i].length <= 15 && lines[i + 1] && /^리뷰 \d+/.test(lines[i + 1])) {
@@ -264,10 +284,17 @@ export async function getPlaceInfo(
           i = j;
         }
       }
-      return results;
+      return { results, visitorCount };
     });
 
-    return cleanDeep({ detail: detail as PlaceDetail, reviews: reviews as ReviewItem[] });
+    // 리뷰 탭 값이 있으면 그것이 방문자 리뷰 수다. 홈의 합계에서 빼면 블로그 리뷰 수가 된다.
+    // naverTotalReviews는 중간값이라 저장하지 않는다.
+    const { naverTotalReviews, ...rest } = detail;
+    const naverReviewCount = visitorCount > 0 ? visitorCount : rest.naverReviewCount;
+    const naverBlogReviewCount = naverReviewCount > 0 && naverTotalReviews >= naverReviewCount
+      ? naverTotalReviews - naverReviewCount : rest.naverBlogReviewCount;
+    const fixed = { ...rest, naverReviewCount, naverBlogReviewCount };
+    return cleanDeep({ detail: fixed as PlaceDetail, reviews: reviews as ReviewItem[] });
   });
 }
 
