@@ -7,12 +7,14 @@ import { record, type AnyUsage } from './usage';
 import { stripTrailingMarkers } from './generate';
 
 /**
- * DeepSeek V4-Flash로 번역한다. gpt-5.4-mini 대비 출력 단가가 1/16($0.28 vs $4.50)이고,
+ * DeepSeek-V4.1-Flash(`deepseek-flash`)로 번역한다. 옛 이름 `deepseek-v4-flash`는 모델
+ * 목록에서 사라졌고 서버가 별칭으로 연결해 주고 있을 뿐이라 2026-09-24에 정식 ID로 바꿨다.
+ * gpt-5.4-mini 대비 출력 단가가 1/16($0.28 vs $4.50)이고,
  * 실측 비교에서 품질은 오히려 나았다 — GEO 필수 문구를 본문에 3~4회 넣은 반면
  * gpt-5.4-mini는 영어에서 1회에 그쳐 요구(2회 이상)를 어겼고, 스페인어 제목에는
  * 한글을 남겼다. HTML 구조 보존과 수치 일치는 두 모델이 동등했다.
  */
-export const TRANSLATION_MODEL = 'deepseek-v4-flash';
+export const TRANSLATION_MODEL = 'deepseek-flash';
 
 // 지연 초기화: 모듈 스코프에서 만들면 env.ts가 .env.local을 읽기 전에 실행된다.
 let _client: OpenAI | null = null;

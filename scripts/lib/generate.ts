@@ -8,16 +8,16 @@ import { record, type AnyUsage } from './usage';
 let _openai: OpenAI | null = null;
 const openai = () => (_openai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
-// gpt-5.4-mini draws on OpenAI's 10M tokens/day free mini allowance — 10x the 1M given to
-// the gpt-5.4 tier. At ~14K tokens per article that is hundreds of articles/day, so the
-// cadence is no longer allowance-bound.
+// 2026-09-24: gpt-5.4-mini → gpt-6-luna, unified across every site (medicalkoreaguide,
+// _derma, and all medguide-* sites). luna does NOT support `temperature`.
 //
-// Quality was measured, not assumed: with the full prompt below, mini produced 8.2–9.9K
-// character articles (gpt-5.4 produced 9.1K) with no out-of-vocabulary tags and 6 FAQ
-// pairs, passing assertArticleSane 3/3. It does occasionally drift to <dl>/<dt>/<dd> for
-// the FAQ when the prompt is weakened — that breaks both the CSS and the FAQPage JSON-LD
-// extraction — which is why the allowed-tag list in the prompt must stay explicit.
-export const ARTICLE_MODEL = 'gpt-5.4-mini';
+// History: mini was chosen for OpenAI's 10M tokens/day free mini allowance. With the
+// full prompt below it produced 8.2–9.9K character articles with no out-of-vocabulary
+// tags and 6 FAQ pairs, passing assertArticleSane 3/3. Models occasionally drift to
+// <dl>/<dt>/<dd> for the FAQ when the prompt is weakened — that breaks both the CSS and
+// the FAQPage JSON-LD extraction — which is why the allowed-tag list in the prompt must
+// stay explicit.
+export const ARTICLE_MODEL = 'gpt-6-luna';
 
 // Reasoning tokens are billed inside max_output_tokens on the Responses API.
 // A ~3,000자 Korean HTML article is 8–11K output; effort:'low' reasoning adds 1–3K.
