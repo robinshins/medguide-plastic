@@ -117,7 +117,7 @@ export const getAvailableLangs = unstable_cache(
  * 얼어붙었다 — 2026-10-04 실측으로 5개 사이트 전부 마지막 배포 이후 글이 한 건도
  * 사이트맵에 없었다(홈·목록은 같은 샤드를 읽고도 정상 갱신). 사이트맵은 구글이 새 글을
  * 발견하는 유일한 경로(IndexNow 미지원)라서 캐시 계층을 믿지 않고 매번 Firestore를
- * 읽는다. 호출 빈도는 sitemap.xml/route.ts의 CDN 캐시(s-maxage)가 묶는다.
+ * 읽는다. 호출 빈도는 api/sitemap/route.ts의 CDN 캐시(s-maxage)가 묶는다.
  */
 export async function getAllArticleSlugs(
   lang: AnyLang = 'ko'

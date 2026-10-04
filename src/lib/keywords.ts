@@ -359,7 +359,7 @@ function buildRegionList(): RegionEntry[] {
 // 'en'이라는 slug의 글이 생기면 그 글에 영원히 접근할 수 없다.
 export const RESERVED_SLUGS = new Set([
   's', 'api', 'about', 'privacy', 'terms', 'contact', 'blog', 'pricing',
-  'sitemap.xml', 'robots.txt', 'og', 'img', 'pattern', '_next', 'favicon.ico',
+  'sitemap.xml', 'feed.xml', 'llms.txt', 'robots.txt', 'og', 'img', 'pattern', '_next', 'favicon.ico',
   'icon.svg', 'apple-icon.png', 'logo.svg',
   ...LANGS.map(l => l.toLowerCase()),
 ]);

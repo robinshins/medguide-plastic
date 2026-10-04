@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // which is what makes the home page and specialty listings show a new article
 // immediately. /sitemap.xml and /feed.xml are not covered here on purpose: they are
 // force-dynamic route handlers that read Firestore uncached behind a 30-minute CDN
-// cache (see sitemap.xml/route.ts for why the cached version froze).
+// cache (see api/sitemap/route.ts for why the cached version froze).
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');

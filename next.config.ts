@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // /sitemap.xml은 src/app/api/sitemap/route.ts가 만든다. app/sitemap.ts나
+  // app/sitemap.xml/route.ts로는 프로덕션에서 갱신되지 않거나 404가 났다(그 파일 주석 참조).
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: '/sitemap.xml', destination: '/api/sitemap' },
+      ],
+    };
+  },
   // Allow Naver image domains
   images: {
     remotePatterns: [

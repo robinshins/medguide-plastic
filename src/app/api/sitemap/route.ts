@@ -4,10 +4,14 @@ import { getAllArticleSlugs } from '@/lib/articles';
 import { getAllBlogPosts } from '@/lib/blog';
 import { LANGS, localePath } from '@/lib/i18n';
 
-// 일반 route handler다. metadata route(app/sitemap.ts)로 두었을 때는 `revalidate`도
+// /sitemap.xml의 실제 구현. next.config.ts의 rewrite가 /sitemap.xml을 여기로 보낸다.
+//
+// metadata route(app/sitemap.ts)로 두었을 때는 `revalidate`도
 // revalidatePath('/sitemap.xml')도 듣지 않아 배포 시점의 글 목록이 다음 배포까지
 // 그대로 나갔다(2026-10-04 실측: eye·komed·ortho·plastic은 9/24 배포 이후 글 0건).
-// metadata route에는 force-dynamic을 걸 수 없지만(404가 났다) route handler에는 된다.
+// app/sitemap.xml/route.ts로 옮기는 것도 안 된다 — 로컬 dev에서는 동작하지만 Vercel
+// 프로덕션 빌드에서는 라우트가 잡히지 않아 /[seg]로 떨어지며 404가 났다(같은 날 실측).
+// 그래서 경로명이 특별 취급되지 않는 /api/sitemap에 두고 rewrite로 연결한다.
 //
 // 요청마다 Firestore를 읽되 CDN이 30분간 응답을 들고 있으므로 재생성은 많아야
 // 하루 48회, 회당 읽기는 (진료항목 수 × 언어 6개)건이다. 새 글은 늦어도 30분 안에

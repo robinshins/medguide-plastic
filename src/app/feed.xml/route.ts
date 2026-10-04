@@ -6,7 +6,7 @@ import { getAllBlogPosts } from '@/lib/blog';
 // RSS 2.0 — 한국어 최신 글 + 기초상식 블로그. 번역본은 넣지 않는다(같은 글의 6개 언어가
 // 한 피드에 섞이면 리더에서 중복으로 보인다).
 //
-// sitemap.xml/route.ts와 같은 이유로 force-dynamic + 무캐시 읽기 + CDN 캐시를 쓴다.
+// api/sitemap/route.ts와 같은 이유로 force-dynamic + 무캐시 읽기 + CDN 캐시를 쓴다.
 // 재생성 1회당 Firestore 읽기는 `_latest` 샤드 1건이다.
 export const dynamic = 'force-dynamic';
 

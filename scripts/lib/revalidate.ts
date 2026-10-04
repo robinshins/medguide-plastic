@@ -6,7 +6,7 @@
  * 한 번에 쓰는 경로에서 특히 중요하다.
  *
  * (사이트맵·피드는 이 태그와 무관하다 — Firestore를 캐시 없이 읽고 CDN이 30분간
- *  들고 있으므로 최대 30분 뒤 갱신된다. src/app/sitemap.xml/route.ts 주석 참조.)
+ *  들고 있으므로 최대 30분 뒤 갱신된다. src/app/api/sitemap/route.ts 주석 참조.)
  */
 export async function revalidateSite(label = 'revalidate'): Promise<void> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
