@@ -18,14 +18,19 @@ async function readShard(specialtySlug: string, lang: AnyLang = 'ko'): Promise<A
 }
 
 /**
+ * `_latest` 샤드를 캐시 없이 직접 읽는다. /feed.xml 전용 — 아래 getAllArticleSlugs 주석 참조.
+ */
+export async function readLatestArticles(limit = 6, lang: AnyLang = 'ko'): Promise<ArticleSummary[]> {
+  const items = (await readShard(LATEST_SHARD, lang)) ?? [];
+  return items.slice(0, limit);
+}
+
+/**
  * Latest articles across every specialty. Reads one small shard (`_latest`, capped at
  * 100) rather than the whole index.
  */
 export const getLatestArticles = unstable_cache(
-  async (limit = 6, lang: AnyLang = 'ko'): Promise<ArticleSummary[]> => {
-    const items = (await readShard(LATEST_SHARD, lang)) ?? [];
-    return items.slice(0, limit);
-  },
+  readLatestArticles,
   ['getLatestArticles'],
   { revalidate: CACHE_REVALIDATE, tags: [CACHE_TAG] }
 );
@@ -105,41 +110,47 @@ export const getAvailableLangs = unstable_cache(
   { revalidate: CACHE_REVALIDATE, tags: [CACHE_TAG] }
 );
 
-/** Every published slug, for the sitemap. One read per specialty shard. */
-export const getAllArticleSlugs = unstable_cache(
-  async (lang: AnyLang = 'ko'): Promise<{ slug: string; publishedAt?: string }[]> => {
-    const shards = await Promise.all(
-      SITE.specialties.map(s => readShard(s.slug || 'general', lang))
-    );
+/**
+ * Every published slug, for the sitemap. One read per specialty shard.
+ *
+ * 일부러 unstable_cache로 감싸지 않는다. 감쌌을 때 사이트맵이 배포 시점의 글 목록에
+ * 얼어붙었다 — 2026-10-04 실측으로 5개 사이트 전부 마지막 배포 이후 글이 한 건도
+ * 사이트맵에 없었다(홈·목록은 같은 샤드를 읽고도 정상 갱신). 사이트맵은 구글이 새 글을
+ * 발견하는 유일한 경로(IndexNow 미지원)라서 캐시 계층을 믿지 않고 매번 Firestore를
+ * 읽는다. 호출 빈도는 sitemap.xml/route.ts의 CDN 캐시(s-maxage)가 묶는다.
+ */
+export async function getAllArticleSlugs(
+  lang: AnyLang = 'ko'
+): Promise<{ slug: string; publishedAt?: string }[]> {
+  const shards = await Promise.all(
+    SITE.specialties.map(s => readShard(s.slug || 'general', lang))
+  );
 
-    if (shards.every(s => s === null)) {
-      // 샤드가 하나도 없으면 사이트맵이 조용히 비는 것을 막기 위해 스캔으로 폴백한다.
-      // 번역 언어는 폴백하지 않는다 — 샤드가 없다는 건 아직 그 언어 번역이 없다는
-      // 뜻이고, 스캔하면 번역이 없는 URL까지 사이트맵에 올라가 404를 색인시킨다.
-      if (lang !== 'ko') return [];
-      const snapshot = await db.collection(ARTICLES_COLLECTION).select('slug', 'publishedAt').get();
-      return snapshot.docs
-        .filter(d => !d.id.includes('__'))
-        .map(d => {
-          const data = d.data();
-          return { slug: data.slug as string, publishedAt: data.publishedAt as string | undefined };
-        });
-    }
+  if (shards.every(s => s === null)) {
+    // 샤드가 하나도 없으면 사이트맵이 조용히 비는 것을 막기 위해 스캔으로 폴백한다.
+    // 번역 언어는 폴백하지 않는다 — 샤드가 없다는 건 아직 그 언어 번역이 없다는
+    // 뜻이고, 스캔하면 번역이 없는 URL까지 사이트맵에 올라가 404를 색인시킨다.
+    if (lang !== 'ko') return [];
+    const snapshot = await db.collection(ARTICLES_COLLECTION).select('slug', 'publishedAt').get();
+    return snapshot.docs
+      .filter(d => !d.id.includes('__'))
+      .map(d => {
+        const data = d.data();
+        return { slug: data.slug as string, publishedAt: data.publishedAt as string | undefined };
+      });
+  }
 
-    const seen = new Set<string>();
-    const out: { slug: string; publishedAt?: string }[] = [];
-    for (const items of shards) {
-      for (const a of items ?? []) {
-        if (seen.has(a.slug)) continue;
-        seen.add(a.slug);
-        out.push({ slug: a.slug, publishedAt: a.publishedAt });
-      }
+  const seen = new Set<string>();
+  const out: { slug: string; publishedAt?: string }[] = [];
+  for (const items of shards) {
+    for (const a of items ?? []) {
+      if (seen.has(a.slug)) continue;
+      seen.add(a.slug);
+      out.push({ slug: a.slug, publishedAt: a.publishedAt });
     }
-    return out;
-  },
-  ['getAllArticleSlugs'],
-  { revalidate: CACHE_REVALIDATE, tags: [CACHE_TAG] }
-);
+  }
+  return out;
+}
 
 /** Published count per specialty, for nav badges and the home stats bar. */
 export const getSpecialtyCounts = unstable_cache(

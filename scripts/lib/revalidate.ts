@@ -5,8 +5,8 @@
  * 없으면 새 번역이 최대 6시간 동안 사이트에 나타나지 않는다. 백필처럼 수백 건을
  * 한 번에 쓰는 경로에서 특히 중요하다.
  *
- * (사이트맵은 metadata route라 태그로 purge되지 않는다 — 자체 revalidate=300으로
- *  최대 5분 뒤 갱신된다. sitemap.ts 주석 참조.)
+ * (사이트맵·피드는 이 태그와 무관하다 — Firestore를 캐시 없이 읽고 CDN이 30분간
+ *  들고 있으므로 최대 30분 뒤 갱신된다. src/app/sitemap.xml/route.ts 주석 참조.)
  */
 export async function revalidateSite(label = 'revalidate'): Promise<void> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;

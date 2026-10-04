@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: { default: `${SITE.siteName} — ${SITE.siteTagline}`, template: `%s | ${SITE.siteName}` },
   description: SITE.siteDescription,
-  alternates: { canonical: '/' },
+  alternates: { canonical: '/', types: { 'application/rss+xml': '/feed.xml' } },
   openGraph: {
     type: 'website',
     locale: 'ko_KR',

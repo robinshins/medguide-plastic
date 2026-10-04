@@ -72,6 +72,10 @@ export async function searchNaver(browser: Browser, query: string): Promise<Nave
       { waitUntil: 'networkidle2', timeout: 30000 }
     );
     await delay(1500);
+    for (let s = 0; s < 3; s++) {
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await delay(400);
+    }
     return page.evaluate(() => {
       const root = document.querySelector('#place-app-root');
       if (!root) return [];
@@ -95,7 +99,7 @@ export async function searchNaver(browser: Browser, query: string): Promise<Nave
         seen.add(match[1]);
         results.push({ id: match[1], name });
       }
-      return results.slice(0, 8); // over-fetch; the category filter will thin this out
+      return results.slice(0, 15);
     });
   });
 }

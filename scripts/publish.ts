@@ -21,6 +21,9 @@ import {
 } from './lib/store';
 import { saveArticle, saveTranslation } from './lib/store';
 import { looksRestricted } from '../src/lib/restricted';
+import { db } from '../src/lib/firebase';
+import { ARTICLES_COLLECTION } from '../src/lib/collections';
+import { pickRecommended } from './lib/recommend';
 
 // --- CLI ------------------------------------------------------------------
 const argv = process.argv.slice(2);
@@ -41,28 +44,48 @@ const OPTS = {
 };
 
 const MIN_HOSPITALS = 3;
-const TARGET_HOSPITALS = 5;
+const POOL_LIMIT = 15;
 
 // --- scraping -------------------------------------------------------------
+async function siblingTopIds(region: string, specialtySlug: string): Promise<Set<string>> {
+  try {
+    const snap = await db.collection(ARTICLES_COLLECTION)
+      .where('region', '==', region)
+      .select('specialtySlug', 'hospitals')
+      .get();
+    const ids = new Set<string>();
+    for (const doc of snap.docs) {
+      if (doc.id.includes('__')) continue;
+      const data = doc.data();
+      if (data.specialtySlug === specialtySlug || !Array.isArray(data.hospitals)) continue;
+      for (const h of data.hospitals.slice(0, 3)) {
+        if (h?.id) ids.add(String(h.id));
+      }
+    }
+    return ids;
+  } catch (e) {
+    console.log(`  [rank] sibling lookup failed: ${(e as Error).message}`);
+    return new Set();
+  }
+}
+
 async function collectHospitals(browser: Browser, kw: KeywordEntry): Promise<HospitalInfo[]> {
   const queries = [kw.keyword];
-  // Specialty queries can come back thin or off-specialty; fall back to the bare
-  // region query rather than failing the keyword outright. (The older production
-  // runner never had this fallback — only the unused lib path did.)
-  if (kw.specialtySlug !== 'general') queries.push(`${kw.region} ${SITE.categoryKo}`);
 
   const hospitals: HospitalInfo[] = [];
   const seen = new Set<string>();
   const pending: PendingMatch[] = [];
 
-  for (const query of queries) {
-    if (hospitals.length >= TARGET_HOSPITALS) break;
+  let qi = 0;
+  while (qi < queries.length) {
+    const query = queries[qi++];
+    if (hospitals.length >= POOL_LIMIT) break;
     console.log(`  [scrape] "${query}"`);
     const places = await searchNaver(browser, query);
     console.log(`  [scrape] ${places.length} places`);
 
     for (const place of places) {
-      if (hospitals.length >= TARGET_HOSPITALS) break;
+      if (hospitals.length >= POOL_LIMIT) break;
       if (seen.has(place.id)) continue;
       seen.add(place.id);
 
@@ -137,6 +160,13 @@ async function collectHospitals(browser: Browser, kw: KeywordEntry): Promise<Hos
         console.log(`    ! ${place.name}: ${(e as Error).message.slice(0, 90)}`);
       }
     }
+    if (qi === 1 && hospitals.length < MIN_HOSPITALS && kw.specialtySlug !== 'general') {
+      const fallback = `${kw.region} ${SITE.categoryKo}`;
+      if (fallback !== query) {
+        console.log(`  [scrape] pool ${hospitals.length} < ${MIN_HOSPITALS}, fallback "${fallback}"`);
+        queries.push(fallback);
+      }
+    }
   }
 
   if (pending.length) {
@@ -151,10 +181,14 @@ async function collectHospitals(browser: Browser, kw: KeywordEntry): Promise<Hos
     console.log(`  [match] resolved ${matched.size}/${pending.length}`);
   }
 
+  const siblings = await siblingTopIds(kw.region, kw.specialtySlug);
+  const picked = pickRecommended(hospitals, kw.specialty || '', siblings);
+  console.log(`  [rank] pool ${hospitals.length} → ${picked.map(h => h.name).join(' / ')}`);
+
   // 스크랩 텍스트를 여기서 한 번 씻는다. 네이버 리뷰에 잘린 이모지(짝 없는
   // 서로게이트)가 섞여 있으면 프롬프트를 JSON으로 직렬화할 때 OpenAI가 본문
   // 파싱을 거부하고(400 Invalid body), 재시도 3회가 모두 같은 이유로 죽는다.
-  return cleanDeep(hospitals);
+  return cleanDeep(picked);
 }
 
 // --- one keyword ----------------------------------------------------------
@@ -230,13 +264,14 @@ async function publishOne(browser: Browser, kw: KeywordEntry): Promise<Article |
 }
 
 /**
- * Purge the deployed site's data cache so the new article shows up in listings and
- * the sitemap immediately.
+ * Purge the deployed site's data cache so the new article shows up in listings
+ * immediately.
  *
- * Without this, `getArticles` / `getLatestArticles` / `getAllArticleSlugs` stay stale
- * for up to CACHE_REVALIDATE (6h) — the article URL itself resolves right away (its
- * cache key is new), but the home page, the specialty listing, and crucially the
- * sitemap keep serving the old set, which delays search-engine discovery.
+ * Without this, `getArticles` / `getLatestArticles` stay stale for up to
+ * CACHE_REVALIDATE (6h) — the article URL itself resolves right away (its cache key is
+ * new), but the home page and the specialty listing keep serving the old set. The
+ * sitemap does not depend on this purge: it reads Firestore uncached and lags by at
+ * most its 30-minute CDN cache.
  *
  * Best-effort: a failure here must never fail an otherwise-good publish, and it is
  * expected to fail locally when no dev server is running on NEXT_PUBLIC_SITE_URL.
