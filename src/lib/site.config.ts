@@ -15,6 +15,7 @@ import type { SiteConfig } from './site.types';
 // wrinkle, scar, pore). 안면윤곽 uses `facial-bone`, NOT `contouring`.
 export const SITE: SiteConfig = {
   key: 'plastic',
+  gaId: 'G-3JP0QM6NG1',
 
   categoryKo: '성형외과',
   siteName: '컨투어 리포트',
