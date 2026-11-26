@@ -42,7 +42,8 @@ const TARGET_LANGS: Lang[] = (() => {
 })();
 
 // 글 동시 실행 폭. 언어 5개가 각각 안에서 또 동시에 돌므로 실제 동시 요청은 이 값×5다.
-// 4×5=20이 DeepSeek 쪽에서 안정적으로 통과하는 선이었다. 올리면 429가 난다.
+// 4×5=20은 DeepSeek로 번역하던 때 안정적으로 통과하던 선이다. 2026-11-26부터 번역은
+// gpt-6-luna라 OpenAI 분당 토큰 한도에 걸려 429가 나면 이 값을 낮춘다.
 const CONCURRENCY = Number(value('concurrency') ?? 4);
 
 async function pool<T>(items: T[], width: number, fn: (item: T, i: number) => Promise<void>) {
@@ -116,7 +117,7 @@ async function main() {
   console.log(`\n[${SITE.key}] 완료: 성공 ${done} / 실패 ${failed} / ${((Date.now() - t0) / 60000).toFixed(1)}분`);
   // 이게 없으면 새 번역이 최대 6시간 동안 사이트에 나타나지 않는다.
   if (done) await revalidateSite();
-  console.log(`[deepseek] token usage:\n${usageSummary()}`);
+  console.log(`[translate] token usage:\n${usageSummary()}`);
 }
 
 main().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });

@@ -29,9 +29,10 @@
 - **글 문서 id = slug.** 인덱스는 진료항목별 샤드(`artindex_X/{specialtySlug}`) + `_latest`.
 - **발행 파이프라인은 `scripts/publish.ts` 하나.** (tsx 실행, `src/lib`와 타입 공유)
   글 생성 모델은 `gpt-6-luna`(Responses API, structured outputs, 2026-09-24부터 모든
-  사이트 통일). 번역은 `deepseek-flash`(DeepSeek-V4.1-Flash)로 `scripts/lib/translate.ts`.
+  사이트 통일). 번역도 `gpt-6-luna`(2026-11-26부터, reasoning effort `low`)로 `scripts/lib/translate.ts`.
+  이전 번역 모델은 `deepseek-flash`였다.
   실측 글당 ~14K 토큰(입력 5.3K / 출력 8.6K)은 gpt-5.4-mini 기준이라 luna로 다시 재야 한다.
-  cron은 사이트당 8회 = 40건/일.
+  cron은 사이트당 6회 = 하루 6편(2026-11-24).
 - 큐 재시도: 실패 시 `pending` 복귀, `MAX_ATTEMPTS`(3) 초과 시 `failed`.
   1시간 이상 `in_progress`면 자동 회수.
 

@@ -7,33 +7,28 @@ import { record, type AnyUsage } from './usage';
 import { stripTrailingMarkers } from './generate';
 
 /**
- * DeepSeek-V4.1-Flash(`deepseek-flash`)로 번역한다. 옛 이름 `deepseek-v4-flash`는 모델
- * 목록에서 사라졌고 서버가 별칭으로 연결해 주고 있을 뿐이라 2026-09-24에 정식 ID로 바꿨다.
- * gpt-5.4-mini 대비 출력 단가가 1/16($0.28 vs $4.50)이고,
- * 실측 비교에서 품질은 오히려 나았다 — GEO 필수 문구를 본문에 3~4회 넣은 반면
- * gpt-5.4-mini는 영어에서 1회에 그쳐 요구(2회 이상)를 어겼고, 스페인어 제목에는
- * 한글을 남겼다. HTML 구조 보존과 수치 일치는 두 모델이 동등했다.
+ * gpt-6-luna로 번역한다(2026-11-26부터, 글 생성과 같은 모델).
+ *
+ * 이력: 2026-09-24에 gpt-5.4-mini → deepseek-flash(DeepSeek-V4.1-Flash). 그때 비교에서
+ * mini는 GEO 필수 문구를 영어에서 1회만 넣었고 스페인어 제목에 한글을 남겼다. 이 두 가지는
+ * 프롬프트 규칙과 assertTranslationSane이 계속 잡는다.
+ * 2026-11-26에 luna로 바꾼 이유는 비용이다. 공식 단가(100만 토큰당) luna 입력 $0.10·출력
+ * $0.50, deepseek-flash 정가 $0.30·$1.20. 게다가 이 파일은 DeepSeek의 thinking(기본값 켜짐)을
+ * 끄지 않아 언어당 출력이 1.2만~2.5만 토큰이었다.
+ * reasoning effort는 'low'다. 2026-11-26 시험에서 'none'은 영어·베트남어 9번 중 3번 필수 GEO
+ * 문구를 1회만 넣었고(아래 검수 실패), 'low'는 6번 모두 지켰다. 추론 토큰은 호출당 150개 안팎이다.
  */
-export const TRANSLATION_MODEL = 'deepseek-flash';
+export const TRANSLATION_MODEL = 'gpt-6-luna';
 
 // 지연 초기화: 모듈 스코프에서 만들면 env.ts가 .env.local을 읽기 전에 실행된다.
 let _client: OpenAI | null = null;
-const client = () => {
-  // 명시적으로 막는다. DEEPSEEK_API_KEY가 없으면 OpenAI SDK가 조용히
-  // OPENAI_API_KEY로 폴백해 DeepSeek 엔드포인트에 OpenAI 키를 보내고,
-  // 원인을 알 수 없는 401 다섯 개가 뜬다.
-  if (!process.env.DEEPSEEK_API_KEY) {
-    throw new FatalError('DEEPSEEK_API_KEY is not set — translation cannot run');
-  }
-  return (_client ??= new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    baseURL: 'https://api.deepseek.com',
-    // 번역 1건이 50~70초 걸린다. SDK 기본 타임아웃(10분)보다 짧게 잡되
-    // 느린 언어(태국어)도 통과할 만큼은 준다.
+const client = () =>
+  (_client ??= new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    // SDK 기본 타임아웃(10분)보다 짧게 잡되 느린 언어(태국어)도 통과할 만큼은 준다.
     timeout: 5 * 60 * 1000,
     maxRetries: 0, // 재시도는 withRetry가 담당한다 — 이중 재시도를 만들지 않는다
   }));
-};
 
 /**
  * 마커 형식을 쓴다. JSON은 안 된다.
@@ -144,25 +139,40 @@ export function assertTranslationSane(
 
 /** 한 언어 번역. 실패는 던진다 — 호출부의 withRetry가 받는다. */
 export async function translateOne(article: Article, lang: Lang): Promise<TranslatedArticle> {
-  const res = await client().chat.completions.create({
+  const res = await client().responses.create({
     model: TRANSLATION_MODEL,
-    messages: [{ role: 'user', content: buildPrompt(article, lang) }],
-    // 번역문은 원문보다 길어진다 — 한국어 11,000자가 영어 22,000자가 되고, 실측
-    // 출력이 이미 10.7K 토큰이었다. 16000은 여유가 얼마 없어 긴 글에서 잘린다.
-    // DeepSeek 허용 최대는 393216이고, 미사용분은 과금되지 않는다.
-    max_tokens: 64000,
+    reasoning: { effort: 'low' },
+    // 번역문은 원문보다 길어진다 — 한국어 11,000자가 영어 22,000자가 된다. 실측 언어당
+    // 출력은 4.5~6.2K 토큰(2026-11-26, 한국어 8,600자 글)이라 32000이면 넉넉하다. 이 값은 OpenAI 분당 토큰 한도
+    // 계산에 그대로 들어가고 언어 5개가 동시에 뜨므로 필요 이상으로 키우지 않는다.
+    // luna는 temperature를 지원하지 않는다.
+    max_output_tokens: 32000,
+    input: [{ role: 'user', content: buildPrompt(article, lang) }],
   });
 
-  record(`tr:${lang}`, res.usage as AnyUsage);
+  const r = res as unknown as {
+    status?: string;
+    incomplete_details?: { reason?: string };
+    error?: { message?: string };
+    output_text?: string;
+    output?: { type: string; content?: { type: string; refusal?: string }[] }[];
+    usage?: AnyUsage;
+  };
 
-  const choice = res.choices[0];
-  if (!choice) throw new RetryableError(`${lang}: no choices returned`);
-  if (choice.finish_reason === 'length') {
-    throw new RetryableError(`${lang}: truncated (finish_reason=length)`);
+  record(`tr:${lang}`, r.usage);
+
+  if (r.status === 'incomplete') {
+    throw new RetryableError(`${lang}: incomplete — ${r.incomplete_details?.reason ?? 'unknown'}`);
   }
-  const text = choice.message?.content;
-  if (!text?.trim()) throw new RetryableError(`${lang}: empty content`);
-  if (choice.message?.refusal) throw new FatalError(`${lang}: refusal — ${choice.message.refusal}`);
+  if (r.status && r.status !== 'completed') {
+    throw new RetryableError(`${lang}: status=${r.status} ${r.error?.message ?? ''}`);
+  }
+  const refusal = (r.output ?? [])
+    .flatMap(i => (i.type === 'message' ? i.content ?? [] : []))
+    .find(c => c.type === 'refusal');
+  if (refusal) throw new FatalError(`${lang}: refusal — ${refusal.refusal}`);
+  const text = r.output_text;
+  if (!text?.trim()) throw new RetryableError(`${lang}: empty output_text`);
 
   const out = parseMarkers(text);
   assertTranslationSane(article, out, lang);
@@ -187,7 +197,7 @@ export async function translateOne(article: Article, lang: Lang): Promise<Transl
  * 5개 언어를 동시에 번역한다.
  *
  * 직렬로 돌리면 언어당 50~70초 × 5 = 4~6분이 발행 1건에 그대로 붙는다. 동시 실행이면
- * 가장 느린 언어 하나만큼(약 70초)이다. DeepSeek 쪽 동시 요청 제한에 걸릴 수 있으므로
+ * 가장 느린 언어 하나만큼(약 70초)이다. API 동시 요청 제한에 걸릴 수 있으므로
  * 한 언어가 실패해도 나머지는 저장되도록 allSettled를 쓴다 — 실패한 언어는
  * translate-backfill.ts가 나중에 채운다.
  */
