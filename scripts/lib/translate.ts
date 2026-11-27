@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { SITE } from '../../src/lib/site.config';
 import { LANGS, LANG_META, GEO_HINTS, type Lang } from '../../src/lib/i18n';
 import type { Article, TranslatedArticle } from '../../src/lib/types';
-import { RetryableError, FatalError } from './errors';
+import { RetryableError, FatalError, withRetry } from './errors';
 import { record, type AnyUsage } from './usage';
 import { stripTrailingMarkers } from './generate';
 
@@ -198,14 +198,20 @@ export async function translateOne(article: Article, lang: Lang): Promise<Transl
  *
  * 직렬로 돌리면 언어당 50~70초 × 5 = 4~6분이 발행 1건에 그대로 붙는다. 동시 실행이면
  * 가장 느린 언어 하나만큼(약 70초)이다. API 동시 요청 제한에 걸릴 수 있으므로
- * 한 언어가 실패해도 나머지는 저장되도록 allSettled를 쓴다 — 실패한 언어는
+ * 한 언어가 실패해도 나머지는 저장되도록 allSettled를 쓴다 — 끝내 실패한 언어는
  * translate-backfill.ts가 나중에 채운다.
+ *
+ * 언어마다 withRetry로 3번까지 시도한다. luna로 바꾼 뒤(2026-11-26) 필수 GEO 문구를 본문에
+ * 1회만 넣어 assertTranslationSane에서 떨어지는 언어가 발행 1건당 0~2개씩 나왔는데, 재시도가
+ * 없어 그대로 빠졌다(11/27 확인). 다시 부르면 대개 통과하고, 1회 비용은 0.3센트 안팎이다.
  */
 export async function translateAll(
   article: Article,
   langs: readonly Lang[] = LANGS
 ): Promise<{ ok: TranslatedArticle[]; failed: { lang: Lang; error: string }[] }> {
-  const results = await Promise.allSettled(langs.map(l => translateOne(article, l)));
+  const results = await Promise.allSettled(
+    langs.map(l => withRetry(() => translateOne(article, l), { label: `tr:${l}`, attempts: 3 }))
+  );
 
   const ok: TranslatedArticle[] = [];
   const failed: { lang: Lang; error: string }[] = [];
