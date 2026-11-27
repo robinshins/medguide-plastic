@@ -68,7 +68,7 @@ function buildHospitalContext(hospitals: HospitalInfo[]): string {
       `- 편의시설: ${h.facilities || '정보없음'}`,
       `- ${links || '링크없음'}`,
       `- 평점: ${ratings || '정보없음'}`,
-      `- 네이버리뷰 ${h.naverReviewCount}건 | 블로그리뷰 ${h.naverBlogReviewCount}건 | 카카오리뷰 ${h.kakaoReviewCount}건 | 구글리뷰 ${h.googleReviewCount}건`,
+      `- 네이버리뷰 ${h.naverReviewCount}건 | 블로그리뷰 ${h.naverBlogReviewCount}건 | 카카오리뷰 ${h.kakaoReviewCount}건 ${h.googleReviewCount ? ` | 구글리뷰 ${h.googleReviewCount}건` : ''}`,
       '',
       `실제 방문자 리뷰:`,
       reviews || '없음',
@@ -119,6 +119,7 @@ ${buildHospitalContext(hospitals)}${priceBlock}
 8. <h2> 마무리 — 요약 + 의료 정보 면책 문구 + "최종 수정: ${new Date().toISOString().split('T')[0]}"
 
 ## 문체 규칙 (엄수)
+- 구글 평점·리뷰 수가 병원 데이터에 없으면 0건이나 임의 값을 쓰지 말고 "자료 없음"으로 둔다
 - 이모지 절대 금지. 리뷰를 인용할 때 원문의 이모지·특수문자는 모두 제거하고 인용한다.
 - 리뷰의 날짜를 바꾸지 않는다. 데이터에 "2026년 7월 21일"이면 그대로 쓴다. 날짜가 없으면 날짜를 언급하지 않는다.
 - 없는 정보를 지어내지 않는다. 의료진 이름·학력·수상·자격은 위 데이터에 없으면 절대 쓰지 않는다.

@@ -1,4 +1,4 @@
-import type { Browser } from 'puppeteer-core';
+import type { Page, Browser } from 'puppeteer-core';
 import { withPage, delay } from './browser';
 import { SITE } from '../../src/lib/site.config';
 import type { ReviewItem } from '../../src/lib/types';
@@ -345,27 +345,44 @@ export async function searchKakao(browser: Browser, query: string): Promise<Kaka
 }
 
 // --- Google Maps ----------------------------------------------------------
+// 이름이 일치하는 장소 패널에서만 평점·리뷰 수를 읽는다. 확실하지 않으면 비운다.
+const googleCore = (s: string) => String(s || '').toLowerCase().replace(/\s+/g, '').replace(/(치과교정과치과|치과보철과치과|소아치과치과|치과|피부과|안과|성형외과|정형외과|한의원)?(병원|의원|클리닉)?/g, '').replace(/[^0-9a-z가-힣]/g, '');
+function googleSameName(a: string, b: string): boolean {
+  const x = googleCore(a), y = googleCore(b);
+  if (x.length < 2 || y.length < 2) return false;
+  return x === y || (Math.min(x.length, y.length) >= 3 && (x.includes(y) || y.includes(x)));
+}
+async function readGooglePlace(page: Page, hospitalName: string, region: string): Promise<{ rating: number | null; reviewCount: number }> {
+  // 모바일 화면에는 리뷰 수가 안 나와 데스크톱 UA로 연다
+  await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36');
+  const q = encodeURIComponent(`${hospitalName} ${region}`.trim());
+  await page.goto(`https://www.google.com/maps/search/${q}?hl=ko`, { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.waitForSelector('h1.DUwDvf, a.hfpxzc', { timeout: 8000 }).catch(() => {});
+  const links = await page.$$eval('a.hfpxzc', els => els.map(e => ({ name: e.getAttribute('aria-label') || '', href: (e as HTMLAnchorElement).href })));
+  if (links.length) {
+    const hit = links.filter(l => googleSameName(l.name, hospitalName));
+    if (hit.length !== 1) return { rating: null, reviewCount: 0 };
+    await page.goto(hit[0].href, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.waitForSelector('h1.DUwDvf', { timeout: 8000 }).catch(() => {});
+  }
+  await page.waitForSelector('div.F7nice', { timeout: 5000 }).catch(() => {});
+  const panel = await page.evaluate(() => ({
+    title: (document.querySelector('h1.DUwDvf') as HTMLElement | null)?.innerText || '',
+    box: (document.querySelector('div.F7nice') as HTMLElement | null)?.innerText || '',
+  }));
+  if (!googleSameName(panel.title, hospitalName)) return { rating: null, reviewCount: 0 };
+  const box = panel.box.replace(/\s+/g, ' ');
+  const r = box.match(/^([1-5](?:\.\d)?)/);
+  const c = box.match(/\(([\d,]+)\)/);
+  return { rating: r ? parseFloat(r[1]) : null, reviewCount: r && c ? parseInt(c[1].replace(/,/g, ''), 10) : 0 };
+}
+
 export async function searchGoogle(
   browser: Browser,
   hospitalName: string,
   region: string
 ): Promise<{ rating: number | null; reviewCount: number }> {
-  return withPage(browser, async page => {
-    await page.goto(
-      `https://www.google.com/maps/search/${encodeURIComponent(`${hospitalName} ${region}`)}`,
-      { waitUntil: 'networkidle2', timeout: 30000 }
-    );
-    await delay(2000);
-    return page.evaluate(() => {
-      const text = document.body.innerText;
-      const ratingMatch = text.match(/(\d\.\d)\s*\n/);
-      const reviewMatch = text.match(/\((\d[\d,]*)\)/);
-      return {
-        rating: ratingMatch ? parseFloat(ratingMatch[1]) : null,
-        reviewCount: reviewMatch ? parseInt(reviewMatch[1].replace(/,/g, '')) : 0,
-      };
-    });
-  });
+  return withPage(browser, page => readGooglePlace(page, hospitalName, region));
 }
 
 /**
